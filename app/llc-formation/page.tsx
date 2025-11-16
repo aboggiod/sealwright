@@ -247,7 +247,7 @@ export default function LLCFormationPage() {
                                   onClick={() => field.onChange(pkg.name)}
                                   className={`cursor-pointer border-2 rounded-lg p-5 transition-all ${
                                     field.value === pkg.name
-                                      ? "border-accent bg-accent/5 shadow-md text-white font-bold"
+                                      ? "border-blue-600 bg-blue-600 shadow-md text-white font-bold"
                                       : "border-gray-200 hover:border-accent/50 hover:shadow"
                                   }`}
                                 >
