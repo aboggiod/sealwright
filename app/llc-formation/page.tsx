@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import { NY_COUNTIES, getCountyPublishingCost } from "@/lib/counties";
 
 const formSchema = z.object({
   // Step 1: Business Info
@@ -32,16 +33,30 @@ const formSchema = z.object({
   businessNameAlt1: z.string().optional(),
   businessNameAlt2: z.string().optional(),
   businessPurpose: z.string().min(10, "Please provide a brief description"),
+  county: z.string().min(1, "Please select a county"),
 
-  // Step 2: Member Info
-  memberName: z.string().min(2, "Member name is required"),
-  memberEmail: z.string().email("Invalid email address"),
-  memberPhone: z.string().min(10, "Phone number must be at least 10 digits"),
-  memberAddress: z.string().min(10, "Complete address required"),
+  // Step 2: Member/Organizer Info
+  organizerName: z.string().min(2, "Organizer name is required"),
+  organizerEmail: z.string().email("Invalid email address"),
+  organizerPhone: z.string().min(10, "Phone number must be at least 10 digits"),
+  organizerStreet: z.string().min(5, "Street address required"),
+  organizerCity: z.string().min(2, "City required"),
+  organizerState: z.string().min(2, "State required"),
+  organizerZip: z.string().min(5, "ZIP code required"),
 
-  // Step 3: Service Selection
-  registeredAddress: z.enum(["own", "sealwright"]),
-  addRegisteredAgent: z.boolean(),
+  // Service of Process Address
+  sopName: z.string().min(2, "Name required for service of process"),
+  sopStreet: z.string().min(5, "Street address required"),
+  sopCity: z.string().min(2, "City required"),
+  sopState: z.string().min(2, "State required"),
+  sopZip: z.string().min(5, "ZIP code required"),
+
+  // Step 3: Registered Agent Selection
+  registeredAgent: z.enum(["paper-sherpas", "none", "other"]),
+  otherAgentName: z.string().optional(),
+  otherAgentAddress: z.string().optional(),
+
+  // Additional Services
   addBusinessAddress: z.boolean(),
 });
 
@@ -57,33 +72,66 @@ export default function LLCFormationPage() {
       businessNameAlt1: "",
       businessNameAlt2: "",
       businessPurpose: "",
-      memberName: "",
-      memberEmail: "",
-      memberPhone: "",
-      memberAddress: "",
-      registeredAddress: "own",
-      addRegisteredAgent: false,
+      county: "",
+      organizerName: "",
+      organizerEmail: "",
+      organizerPhone: "",
+      organizerStreet: "",
+      organizerCity: "",
+      organizerState: "NY",
+      organizerZip: "",
+      sopName: "",
+      sopStreet: "",
+      sopCity: "",
+      sopState: "NY",
+      sopZip: "",
+      registeredAgent: "none",
+      otherAgentName: "",
+      otherAgentAddress: "",
       addBusinessAddress: false,
     },
   });
 
-  const addRegisteredAgent = form.watch("addRegisteredAgent");
+  const selectedCounty = form.watch("county");
+  const registeredAgent = form.watch("registeredAgent");
   const addBusinessAddress = form.watch("addBusinessAddress");
 
   const calculateTotal = () => {
     let total = 599; // Base LLC formation
-    if (addRegisteredAgent) total += 149;
+    if (registeredAgent === "paper-sherpas") total += 149;
     if (addBusinessAddress) total += 99;
     return total;
+  };
+
+  const getPublishingCost = () => {
+    if (!selectedCounty) return 300;
+    return getCountyPublishingCost(selectedCounty);
   };
 
   const nextStep = async () => {
     let fieldsToValidate: Array<keyof z.infer<typeof formSchema>> = [];
 
     if (currentStep === 1) {
-      fieldsToValidate = ["businessName", "businessPurpose"];
+      fieldsToValidate = ["businessName", "businessPurpose", "county"];
     } else if (currentStep === 2) {
-      fieldsToValidate = ["memberName", "memberEmail", "memberPhone", "memberAddress"];
+      fieldsToValidate = [
+        "organizerName",
+        "organizerEmail",
+        "organizerPhone",
+        "organizerStreet",
+        "organizerCity",
+        "organizerState",
+        "organizerZip",
+        "sopName",
+        "sopStreet",
+        "sopCity",
+        "sopState",
+        "sopZip",
+      ];
+    } else if (currentStep === 3) {
+      if (registeredAgent === "other") {
+        fieldsToValidate = ["otherAgentName", "otherAgentAddress"];
+      }
     }
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -99,11 +147,18 @@ export default function LLCFormationPage() {
     const orderData = {
       ...values,
       service: "llc-formation",
+      basePrice: 599,
+      registeredAgentCost: registeredAgent === "paper-sherpas" ? 149 : 0,
+      businessAddressCost: addBusinessAddress ? 99 : 0,
+      publishingCost: getPublishingCost(),
       total: calculateTotal(),
       timestamp,
     };
 
     localStorage.setItem(`llc-formation-${timestamp}`, JSON.stringify(orderData));
+
+    // TODO: Generate PDF and send to backend
+    // Will implement PDF generation API endpoint
 
     setTimeout(() => {
       setIsSubmitting(false);
@@ -182,14 +237,14 @@ export default function LLCFormationPage() {
                   </thead>
                   <tbody className="text-gray-700">
                     <tr className="border-b">
-                      <td className="py-2">Filing</td>
-                      <td className="text-right">$500</td>
+                      <td className="py-2">State Filing Fee</td>
+                      <td className="text-right">$200</td>
                       <td className="text-right font-bold">$200</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2">Publication</td>
                       <td className="text-right">$1500</td>
-                      <td className="text-right font-bold">$200</td>
+                      <td className="text-right font-bold">${getPublishingCost()}</td>
                     </tr>
                     <tr className="border-b">
                       <td className="py-2">Service Fee</td>
@@ -198,17 +253,29 @@ export default function LLCFormationPage() {
                     </tr>
                     <tr className="font-bold">
                       <td className="py-2">Total</td>
-                      <td className="text-right text-lg">$2,500</td>
-                      <td className="text-right text-accent text-xl">$599</td>
+                      <td className="text-right text-lg">$2,200+</td>
+                      <td className="text-right text-accent text-xl">${599 + getPublishingCost()}</td>
                     </tr>
                   </tbody>
                 </table>
                 <div className="mt-4 text-center">
                   <div className="text-2xl font-display font-bold text-primary">
-                    Save $1,901
+                    Save ${2200 - (599 + getPublishingCost())}+
                   </div>
-                  <div className="text-sm text-gray-600">76% savings</div>
+                  <div className="text-sm text-gray-600">
+                    {Math.round(((2200 - (599 + getPublishingCost())) / 2200) * 100)}% savings
+                  </div>
                 </div>
+                {selectedCounty && (
+                  <div className="mt-4 p-3 bg-accent/10 rounded-lg">
+                    <div className="text-sm font-semibold text-primary">
+                      {selectedCounty} County
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      Est. publication: ${getPublishingCost()}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -219,7 +286,7 @@ export default function LLCFormationPage() {
               <CardContent className="space-y-2">
                 {[
                   "Articles of Organization filing",
-                  "Albany publication (required)",
+                  "County publication arrangement",
                   "EIN application assistance",
                   "Operating agreement template",
                   "Compliance calendar",
@@ -234,22 +301,6 @@ export default function LLCFormationPage() {
                 ))}
               </CardContent>
             </Card>
-
-            <Card className="bg-accent/5 border-2 border-accent/20">
-              <CardHeader>
-                <CardTitle className="font-display text-primary">Optional Add-ons</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Registered Agent</span>
-                  <span className="font-bold text-primary">+$149/yr</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Business Address</span>
-                  <span className="font-bold text-primary">+$99/mo</span>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Multi-step Form */}
@@ -260,13 +311,14 @@ export default function LLCFormationPage() {
                   <div>
                     <CardTitle className="text-3xl font-display text-primary">
                       {currentStep === 1 && "Business Information"}
-                      {currentStep === 2 && "Member Information"}
-                      {currentStep === 3 && "Additional Services"}
+                      {currentStep === 2 && "Addresses & Contact"}
+                      {currentStep === 3 && "Registered Agent"}
+                      {currentStep === 4 && "Review & Submit"}
                     </CardTitle>
-                    <CardDescription>Step {currentStep} of 3</CardDescription>
+                    <CardDescription>Step {currentStep} of 4</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {[1, 2, 3].map((step) => (
+                    {[1, 2, 3, 4].map((step) => (
                       <div
                         key={step}
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
@@ -354,182 +406,519 @@ export default function LLCFormationPage() {
                             </FormItem>
                           )}
                         />
-                      </div>
-                    )}
-
-                    {/* Step 2: Member Info */}
-                    {currentStep === 2 && (
-                      <div className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="memberName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Primary Member Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Full legal name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="memberEmail"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input type="email" placeholder="member@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="memberPhone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="(555) 123-4567" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                        </div>
 
                         <FormField
                           control={form.control}
-                          name="memberAddress"
+                          name="county"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Member Address</FormLabel>
+                              <FormLabel>County for LLC Office</FormLabel>
                               <FormControl>
-                                <Input placeholder="123 Main St, City, State ZIP" {...field} />
-                              </FormControl>
-                              <FormDescription>
-                                This will be listed in public records
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                    )}
-
-                    {/* Step 3: Services */}
-                    {currentStep === 3 && (
-                      <div className="space-y-6">
-                        <FormField
-                          control={form.control}
-                          name="registeredAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Registered Office Address</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <Select onValueChange={field.onChange} value={field.value}>
                                   <SelectTrigger>
-                                    <SelectValue />
+                                    <SelectValue placeholder="Select county" />
                                   </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="own">Use my own address (free)</SelectItem>
-                                    <SelectItem value="sealwright">Use Sealwright address ($49/yr)</SelectItem>
+                                  <SelectContent className="max-h-[300px]">
+                                    {NY_COUNTIES.map((county) => (
+                                      <SelectItem key={county.name} value={county.name}>
+                                        {county.name} (Est. publication: ${county.publishingCost})
+                                      </SelectItem>
+                                    ))}
                                   </SelectContent>
                                 </Select>
                               </FormControl>
                               <FormDescription>
-                                Required address for official correspondence
+                                County determines publication costs - Albany saves you $1,200+
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
                           )}
                         />
+                      </div>
+                    )}
 
-                        <FormField
-                          control={form.control}
-                          name="addRegisteredAgent"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4 mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="font-semibold">
-                                  Add Registered Agent Service (+$149/year)
-                                </FormLabel>
-                                <FormDescription>
-                                  We&apos;ll accept legal documents and forward them to you promptly
-                                </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                    {/* Step 2: Addresses */}
+                    {currentStep === 2 && (
+                      <div className="space-y-6">
+                        <div className="space-y-4">
+                          <h3 className="font-display text-xl font-bold text-primary">Organizer Information</h3>
 
-                        <FormField
-                          control={form.control}
-                          name="addBusinessAddress"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4 mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="font-semibold">
-                                  Add Virtual Business Address (+$99/month)
-                                </FormLabel>
-                                <FormDescription>
-                                  Professional Albany address for your business cards and website
-                                </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-4">
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-700">LLC Formation</span>
-                              <span className="font-semibold">$599</span>
-                            </div>
-                            {addRegisteredAgent && (
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700">Registered Agent</span>
-                                <span className="font-semibold">$149</span>
-                              </div>
+                          <FormField
+                            control={form.control}
+                            name="organizerName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Organizer Full Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Full legal name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                            {addBusinessAddress && (
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700">Business Address</span>
-                                <span className="font-semibold">$99</span>
-                              </div>
+                          />
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="organizerEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Email</FormLabel>
+                                  <FormControl>
+                                    <Input type="email" placeholder="email@example.com" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="organizerPhone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Phone</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="(555) 123-4567" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="organizerStreet"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Street Address</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123 Main Street" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
                             )}
-                            <div className="border-t pt-2 flex justify-between items-center">
-                              <span className="font-display text-lg text-primary">Total</span>
-                              <span className="font-display text-2xl font-bold text-primary">
-                                ${calculateTotal()}
-                              </span>
-                            </div>
+                          />
+
+                          <div className="grid grid-cols-6 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="organizerCity"
+                              render={({ field }) => (
+                                <FormItem className="col-span-3">
+                                  <FormLabel>City</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="City" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="organizerState"
+                              render={({ field }) => (
+                                <FormItem className="col-span-1">
+                                  <FormLabel>State</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="NY" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="organizerZip"
+                              render={({ field }) => (
+                                <FormItem className="col-span-2">
+                                  <FormLabel>ZIP Code</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="12345" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6 space-y-4">
+                          <h3 className="font-display text-xl font-bold text-primary">Service of Process Address</h3>
+                          <p className="text-sm text-gray-600">
+                            Where the Secretary of State will forward legal documents
+                          </p>
+
+                          <FormField
+                            control={form.control}
+                            name="sopName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Full name or company name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="sopStreet"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Street Address</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123 Main Street" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid grid-cols-6 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="sopCity"
+                              render={({ field }) => (
+                                <FormItem className="col-span-3">
+                                  <FormLabel>City</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="City" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="sopState"
+                              render={({ field }) => (
+                                <FormItem className="col-span-1">
+                                  <FormLabel>State</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="NY" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="sopZip"
+                              render={({ field }) => (
+                                <FormItem className="col-span-2">
+                                  <FormLabel>ZIP Code</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="12345" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex gap-4">
+                    {/* Step 3: Registered Agent */}
+                    {currentStep === 3 && (
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="font-display text-xl font-bold text-primary mb-2">
+                            Registered Agent Service
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-6">
+                            A registered agent receives legal documents on behalf of your LLC
+                          </p>
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="registeredAgent"
+                          render={({ field }) => (
+                            <FormItem className="space-y-4">
+                              <FormControl>
+                                <div className="space-y-3">
+                                  {/* Option 1: Use Paper Sherpas */}
+                                  <div
+                                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                                      field.value === "paper-sherpas"
+                                        ? "border-accent bg-accent/5"
+                                        : "border-gray-200 hover:border-accent/50"
+                                    }`}
+                                    onClick={() => field.onChange("paper-sherpas")}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={field.value === "paper-sherpas"}
+                                        onChange={() => field.onChange("paper-sherpas")}
+                                        className="mt-1 h-4 w-4"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-primary flex items-center gap-2">
+                                          Use Paper Sherpas as Your Registered Agent
+                                          <span className="text-sm font-normal text-accent">
+                                            +$149/year
+                                          </span>
+                                        </div>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                          Professional registered agent service with Albany office address, email
+                                          notifications, and secure document portal
+                                        </p>
+                                        <div className="mt-2 space-y-1">
+                                          {[
+                                            "Albany office address",
+                                            "Email & SMS notifications",
+                                            "Secure online document access",
+                                            "No surprise fees",
+                                          ].map((item, idx) => (
+                                            <div key={idx} className="flex items-center gap-2 text-xs text-gray-600">
+                                              <svg
+                                                className="w-4 h-4 text-accent flex-shrink-0"
+                                                fill="currentColor"
+                                                viewBox="0 0 20 20"
+                                              >
+                                                <path
+                                                  fillRule="evenodd"
+                                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                                  clipRule="evenodd"
+                                                />
+                                              </svg>
+                                              {item}
+                                            </div>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Option 2: No Registered Agent */}
+                                  <div
+                                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                                      field.value === "none"
+                                        ? "border-accent bg-accent/5"
+                                        : "border-gray-200 hover:border-accent/50"
+                                    }`}
+                                    onClick={() => field.onChange("none")}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={field.value === "none"}
+                                        onChange={() => field.onChange("none")}
+                                        className="mt-1 h-4 w-4"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-primary">No Registered Agent</div>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                          You&apos;ll receive service of process documents directly at the address you
+                                          provided above
+                                        </p>
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Option 3: Other Registered Agent */}
+                                  <div
+                                    className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                                      field.value === "other"
+                                        ? "border-accent bg-accent/5"
+                                        : "border-gray-200 hover:border-accent/50"
+                                    }`}
+                                    onClick={() => field.onChange("other")}
+                                  >
+                                    <div className="flex items-start gap-3">
+                                      <input
+                                        type="radio"
+                                        checked={field.value === "other"}
+                                        onChange={() => field.onChange("other")}
+                                        className="mt-1 h-4 w-4"
+                                      />
+                                      <div className="flex-1">
+                                        <div className="font-semibold text-primary">
+                                          Other Registered Agent
+                                        </div>
+                                        <p className="text-sm text-gray-600 mt-1">
+                                          You already have a registered agent service
+                                        </p>
+
+                                        {field.value === "other" && (
+                                          <div className="mt-4 space-y-3">
+                                            <FormField
+                                              control={form.control}
+                                              name="otherAgentName"
+                                              render={({ field: agentField }) => (
+                                                <FormItem>
+                                                  <FormLabel className="text-sm">
+                                                    Registered Agent Name
+                                                  </FormLabel>
+                                                  <FormControl>
+                                                    <Input
+                                                      placeholder="Agent name or company"
+                                                      {...agentField}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                            <FormField
+                                              control={form.control}
+                                              name="otherAgentAddress"
+                                              render={({ field: addressField }) => (
+                                                <FormItem>
+                                                  <FormLabel className="text-sm">
+                                                    Registered Agent Address
+                                                  </FormLabel>
+                                                  <FormControl>
+                                                    <Input
+                                                      placeholder="Full NYS address"
+                                                      {...addressField}
+                                                      onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                  </FormControl>
+                                                  <FormMessage />
+                                                </FormItem>
+                                              )}
+                                            />
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="border-t pt-6">
+                          <h3 className="font-display text-lg font-bold text-primary mb-4">
+                            Additional Services
+                          </h3>
+
+                          <FormField
+                            control={form.control}
+                            name="addBusinessAddress"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border-2 p-4">
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={field.onChange}
+                                    className="h-4 w-4 mt-1"
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-semibold">
+                                    Add Virtual Business Address (+$99/month)
+                                  </FormLabel>
+                                  <FormDescription>
+                                    Professional Albany address for your business cards and website
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 4: Review & Submit */}
+                    {currentStep === 4 && (
+                      <div className="space-y-6">
+                        <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6">
+                          <h3 className="font-display text-xl font-bold text-primary mb-4">
+                            Order Summary
+                          </h3>
+                          <div className="space-y-3">
+                            <div className="flex justify-between items-center pb-3 border-b">
+                              <div>
+                                <div className="font-semibold text-primary">LLC Formation Service</div>
+                                <div className="text-sm text-gray-600">
+                                  Filing, publication setup, documents & support
+                                </div>
+                              </div>
+                              <span className="font-semibold text-lg">$599</span>
+                            </div>
+
+                            {selectedCounty && (
+                              <div className="flex justify-between items-center pb-3 border-b text-sm">
+                                <div>
+                                  <div className="font-medium text-gray-700">
+                                    Publication in {selectedCounty} County
+                                  </div>
+                                  <div className="text-xs text-gray-500">Estimated cost</div>
+                                </div>
+                                <span className="font-semibold">${getPublishingCost()}</span>
+                              </div>
+                            )}
+
+                            {registeredAgent === "paper-sherpas" && (
+                              <div className="flex justify-between items-center pb-3 border-b text-sm">
+                                <span className="text-gray-700">Registered Agent Service (annual)</span>
+                                <span className="font-semibold">$149</span>
+                              </div>
+                            )}
+
+                            {addBusinessAddress && (
+                              <div className="flex justify-between items-center pb-3 border-b text-sm">
+                                <span className="text-gray-700">Virtual Business Address (monthly)</span>
+                                <span className="font-semibold">$99</span>
+                              </div>
+                            )}
+
+                            <div className="border-t-2 pt-4 flex justify-between items-center">
+                              <span className="font-display text-xl text-primary font-bold">
+                                Total Service Fee
+                              </span>
+                              <span className="font-display text-3xl font-bold text-primary">
+                                ${calculateTotal()}
+                              </span>
+                            </div>
+
+                            <div className="text-xs text-gray-500 pt-2">
+                              * State filing fee ($200) and publication costs are additional and paid directly to
+                              government/newspapers
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-accent/10 border border-accent/30 rounded-lg p-4">
+                          <h4 className="font-semibold text-primary mb-2">What Happens Next?</h4>
+                          <ol className="space-y-2 text-sm text-gray-700">
+                            <li className="flex gap-2">
+                              <span className="font-bold">1.</span>
+                              <span>We&apos;ll review your application and contact you within 24 hours</span>
+                            </li>
+                            <li className="flex gap-2">
+                              <span className="font-bold">2.</span>
+                              <span>We&apos;ll verify business name availability with NYS</span>
+                            </li>
+                            <li className="flex gap-2">
+                              <span className="font-bold">3.</span>
+                              <span>You&apos;ll receive payment instructions for state fees</span>
+                            </li>
+                            <li className="flex gap-2">
+                              <span className="font-bold">4.</span>
+                              <span>We&apos;ll file your Articles of Organization with NYS</span>
+                            </li>
+                            <li className="flex gap-2">
+                              <span className="font-bold">5.</span>
+                              <span>We&apos;ll arrange publication and handle all compliance requirements</span>
+                            </li>
+                          </ol>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex gap-4 pt-4">
                       {currentStep > 1 && (
                         <Button
                           type="button"
@@ -540,7 +929,7 @@ export default function LLCFormationPage() {
                           Previous
                         </Button>
                       )}
-                      {currentStep < 3 ? (
+                      {currentStep < 4 ? (
                         <Button
                           type="button"
                           onClick={nextStep}
