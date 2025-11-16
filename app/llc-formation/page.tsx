@@ -25,7 +25,7 @@ const packages = [
     name: "basic",
     title: "Basic DIY",
     price: 249,
-    description: "You upload, we file",
+    description: "You're DIY-savvy and just need someone who knows where the forms go. We'll take your Articles of Organization and file them same-day. You save money, we save time, everyone's happy.",
     features: [
       "You provide Articles of Organization",
       "We file with NYS DOS",
@@ -37,7 +37,7 @@ const packages = [
     name: "premium",
     title: "Premium",
     price: 399,
-    description: "We do everything",
+    description: "You want this done right without thinking about it. We draft your Articles, you sign digitally on our site, we file everything including your free EIN. Wake up tomorrow with an LLC.",
     features: [
       "We prepare Articles of Organization",
       "Digital signature",
@@ -49,7 +49,7 @@ const packages = [
     name: "full",
     title: "Full Service",
     price: 699,
-    description: "White glove service",
+    description: "White glove treatment. We handle everything for 2 years - formation, EIN, registered agent, biennial statement, even a free DBA. You literally do nothing except sign once and collect your documents.",
     features: [
       "Everything in Premium",
       "2 years Registered Agent",
