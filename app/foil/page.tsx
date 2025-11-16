@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -137,53 +138,53 @@ export default function FOILPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
-        <div className="container mx-auto max-w-2xl">
-          <Card className="border-2 border-accent">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <CardTitle className="text-3xl font-display text-primary">Request Submitted!</CardTitle>
-              <CardDescription className="text-lg">
-                Your FOIL request has been received and will be processed shortly.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-gray-600">
-                We&apos;ll draft your FOIL request and submit it to the appropriate agency. You&apos;ll receive updates via email.
-              </p>
-              <div className="flex gap-4 justify-center pt-4">
-                <Button onClick={() => setShowSuccess(false)} variant="outline">
-                  Submit Another Request
-                </Button>
-                <Link href="/">
-                  <Button>Return Home</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+      <LayoutWrapper>
+        <div className="bg-cream py-12 px-4">
+          <div className="container mx-auto max-w-2xl">
+            <Card className="border-2 border-accent">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <CardTitle className="text-3xl font-display text-primary">Request Submitted!</CardTitle>
+                <CardDescription className="text-lg">
+                  Your FOIL request has been received and will be processed shortly.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-gray-600">
+                  We&apos;ll draft your FOIL request and submit it to the appropriate agency. You&apos;ll receive updates via email.
+                </p>
+                <div className="flex gap-4 justify-center pt-4">
+                  <Button onClick={() => setShowSuccess(false)} variant="outline">
+                    Submit Another Request
+                  </Button>
+                  <Link href="/">
+                    <Button>Return Home</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </LayoutWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <div className="bg-primary text-white py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <Link href="/" className="text-accent hover:underline mb-4 inline-block">
-            ← Back to Home
-          </Link>
-          <h1 className="font-display text-5xl font-bold mb-4">FOIL Requests</h1>
-          <p className="text-xl text-gray-200">
-            Professional Freedom of Information Law document retrieval services
-          </p>
+    <LayoutWrapper>
+      <div className="bg-cream">
+        {/* Page Header */}
+        <div className="bg-primary text-white py-16 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <h1 className="font-display text-5xl font-bold mb-4">FOIL Requests</h1>
+            <p className="text-xl text-gray-200">
+              Professional Freedom of Information Law document retrieval services
+            </p>
+          </div>
         </div>
-      </div>
 
       <div className="container mx-auto max-w-6xl py-12 px-4">
         <div className="grid md:grid-cols-3 gap-8">
@@ -487,6 +488,7 @@ export default function FOILPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </LayoutWrapper>
   );
 }

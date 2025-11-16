@@ -51,3 +51,13 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Button visibility fixes */
+.bg-accent {
+  background-color: #FFB81C !important;
+  color: #001f3f !important;
+}
+
+.text-accent {
+  color: #FFB81C !important;
+}

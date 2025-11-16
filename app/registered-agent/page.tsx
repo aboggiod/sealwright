@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 const formSchema = z.object({
   businessName: z.string().min(3, "Business name must be at least 3 characters"),
@@ -81,62 +82,62 @@ export default function RegisteredAgentPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
-        <div className="container mx-auto max-w-2xl">
-          <Card className="border-2 border-accent">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <CardTitle className="text-3xl font-display text-primary">Welcome Aboard!</CardTitle>
-              <CardDescription className="text-lg">
-                Your registered agent service registration has been received.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-gray-600">
-                We&apos;ll contact you within 24 hours to finalize setup and provide your secure document portal access.
-              </p>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-left max-w-md mx-auto">
-                <h4 className="font-semibold text-primary mb-2">Next Steps:</h4>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  <li>✓ Invoice will be sent to your email</li>
-                  <li>✓ Service begins upon payment</li>
-                  <li>✓ Portal credentials in 24 hours</li>
-                  <li>✓ File with NYS if needed</li>
-                </ul>
-              </div>
-              <div className="flex gap-4 justify-center pt-4">
-                <Button onClick={() => setShowSuccess(false)} variant="outline">
-                  Register Another Entity
-                </Button>
-                <Link href="/">
-                  <Button>Return Home</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+      <LayoutWrapper>
+        <div className="bg-cream py-12 px-4">
+          <div className="container mx-auto max-w-2xl">
+            <Card className="border-2 border-accent">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <CardTitle className="text-3xl font-display text-primary">Welcome Aboard!</CardTitle>
+                <CardDescription className="text-lg">
+                  Your registered agent service registration has been received.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-gray-600">
+                  We&apos;ll contact you within 24 hours to finalize setup and provide your secure document portal access.
+                </p>
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-left max-w-md mx-auto">
+                  <h4 className="font-semibold text-primary mb-2">Next Steps:</h4>
+                  <ul className="space-y-1 text-sm text-gray-700">
+                    <li>✓ Invoice will be sent to your email</li>
+                    <li>✓ Service begins upon payment</li>
+                    <li>✓ Portal credentials in 24 hours</li>
+                    <li>✓ File with NYS if needed</li>
+                  </ul>
+                </div>
+                <div className="flex gap-4 justify-center pt-4">
+                  <Button onClick={() => setShowSuccess(false)} variant="outline">
+                    Register Another Entity
+                  </Button>
+                  <Link href="/">
+                    <Button>Return Home</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </LayoutWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <div className="bg-primary text-white py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <Link href="/" className="text-accent hover:underline mb-4 inline-block">
-            ← Back to Home
-          </Link>
-          <h1 className="font-display text-5xl font-bold mb-4">Registered Agent Service</h1>
-          <p className="text-xl text-gray-200">
-            Reliable NYS registered agent service for your business
-          </p>
+    <LayoutWrapper>
+      <div className="bg-cream">
+        {/* Page Header */}
+        <div className="bg-primary text-white py-16 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <h1 className="font-display text-5xl font-bold mb-4">Registered Agent Service</h1>
+            <p className="text-xl text-gray-200">
+              Reliable NYS registered agent service for your business
+            </p>
+          </div>
         </div>
-      </div>
 
       <div className="container mx-auto max-w-6xl py-12 px-4">
         <div className="grid md:grid-cols-3 gap-8">
@@ -415,6 +416,7 @@ export default function RegisteredAgentPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </LayoutWrapper>
   );
 }

@@ -1,27 +1,11 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 const services = [
   {
-    title: "Apostilles",
-    price: "$99",
-    description: "State-certified authentication for international document use",
-    link: "/apostille",
-    features: [
-      "Same-day processing available",
-      "All document types accepted",
-      "NYS Department of State certified",
-      "Mail-in or drop-off service"
-    ],
-    icon: (
-      <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    )
-  },
-  {
     title: "LLC Formation",
-    price: "$599",
+    price: "From $249",
     description: "Complete business entity formation with state filing",
     link: "/llc-formation",
     features: [
@@ -38,7 +22,7 @@ const services = [
   },
   {
     title: "FOIL Requests",
-    price: "$100",
+    price: "From $100",
     description: "Freedom of Information Law document retrieval",
     link: "/foil",
     features: [
@@ -55,7 +39,7 @@ const services = [
   },
   {
     title: "Registered Agent",
-    price: "$149/year",
+    price: "$75/year",
     description: "Reliable NYS registered agent service for your business",
     link: "/registered-agent",
     features: [
@@ -79,14 +63,14 @@ export default function Services() {
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold text-primary mb-4">
-            Our Services
+            Our Core Services
           </h2>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
             Professional document services with transparent, competitive pricing
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
           {services.map((service, index) => (
             <Link key={index} href={service.link}>
               <Card className="border-2 hover:border-accent transition-colors duration-300 hover:shadow-lg cursor-pointer h-full">
@@ -94,7 +78,7 @@ export default function Services() {
                   <div className="flex items-start justify-between mb-4">
                     <div className="text-accent">{service.icon}</div>
                     <div className="text-right">
-                      <div className="font-display text-3xl font-bold text-primary">
+                      <div className="font-display text-2xl font-bold text-primary">
                         {service.price}
                       </div>
                     </div>
@@ -121,6 +105,15 @@ export default function Services() {
               </Card>
             </Link>
           ))}
+        </div>
+
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">Need additional services?</p>
+          <Link href="/add-ons">
+            <Button className="bg-primary hover:bg-primary/90 text-white font-semibold">
+              View All Add-On Services
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

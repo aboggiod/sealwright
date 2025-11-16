@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 const formSchema = z.object({
   // Step 1: Business Info
@@ -32,6 +33,7 @@ const formSchema = z.object({
   businessNameAlt1: z.string().optional(),
   businessNameAlt2: z.string().optional(),
   businessPurpose: z.string().min(10, "Please provide a brief description"),
+  county: z.string().min(1, "County is required"),
 
   // Step 2: Member Info
   memberName: z.string().min(2, "Member name is required"),
@@ -57,6 +59,7 @@ export default function LLCFormationPage() {
       businessNameAlt1: "",
       businessNameAlt2: "",
       businessPurpose: "",
+      county: "",
       memberName: "",
       memberEmail: "",
       memberPhone: "",
@@ -78,18 +81,20 @@ export default function LLCFormationPage() {
   };
 
   const nextStep = async () => {
-    let fieldsToValidate: Array<keyof z.infer<typeof formSchema>> = [];
+    const stepFields: Record<number, Array<keyof z.infer<typeof formSchema>>> = {
+      1: ["businessName", "businessPurpose", "county"],
+      2: ["memberName", "memberEmail", "memberPhone"],
+      3: [], // No validation for service selection step
+    };
 
-    if (currentStep === 1) {
-      fieldsToValidate = ["businessName", "businessPurpose"];
-    } else if (currentStep === 2) {
-      fieldsToValidate = ["memberName", "memberEmail", "memberPhone", "memberAddress"];
+    const fieldsToValidate = stepFields[currentStep];
+    if (fieldsToValidate && fieldsToValidate.length > 0) {
+      const isValid = await form.trigger(fieldsToValidate);
+      if (!isValid) {
+        return;
+      }
     }
-
-    const isValid = await form.trigger(fieldsToValidate);
-    if (isValid) {
-      setCurrentStep(currentStep + 1);
-    }
+    setCurrentStep(prev => prev + 1);
   };
 
   function onSubmit(values: z.infer<typeof formSchema>) {
@@ -115,53 +120,53 @@ export default function LLCFormationPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
-        <div className="container mx-auto max-w-2xl">
-          <Card className="border-2 border-accent">
-            <CardHeader className="text-center">
-              <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
-                <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <CardTitle className="text-3xl font-display text-primary">Application Received!</CardTitle>
-              <CardDescription className="text-lg">
-                Your LLC formation application has been submitted successfully.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-gray-600">
-                We&apos;ll begin processing your LLC formation and contact you within 24 hours with next steps.
-              </p>
-              <div className="flex gap-4 justify-center pt-4">
-                <Button onClick={() => setShowSuccess(false)} variant="outline">
-                  Submit Another Application
-                </Button>
-                <Link href="/">
-                  <Button>Return Home</Button>
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
+      <LayoutWrapper>
+        <div className="bg-cream py-12 px-4">
+          <div className="container mx-auto max-w-2xl">
+            <Card className="border-2 border-accent">
+              <CardHeader className="text-center">
+                <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
+                  <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <CardTitle className="text-3xl font-display text-primary">Application Received!</CardTitle>
+                <CardDescription className="text-lg">
+                  Your LLC formation application has been submitted successfully.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center space-y-4">
+                <p className="text-gray-600">
+                  We&apos;ll begin processing your LLC formation and contact you within 24 hours with next steps.
+                </p>
+                <div className="flex gap-4 justify-center pt-4">
+                  <Button onClick={() => setShowSuccess(false)} variant="outline">
+                    Submit Another Application
+                  </Button>
+                  <Link href="/">
+                    <Button>Return Home</Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      </div>
+      </LayoutWrapper>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
-      {/* Header */}
-      <div className="bg-primary text-white py-16 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <Link href="/" className="text-accent hover:underline mb-4 inline-block">
-            ← Back to Home
-          </Link>
-          <h1 className="font-display text-5xl font-bold mb-4">LLC Formation</h1>
-          <p className="text-xl text-gray-200">
-            Professional business formation at a fraction of NYC prices
-          </p>
+    <LayoutWrapper>
+      <div className="bg-cream">
+        {/* Page Header */}
+        <div className="bg-primary text-white py-16 px-4">
+          <div className="container mx-auto max-w-4xl">
+            <h1 className="font-display text-5xl font-bold mb-4">LLC Formation</h1>
+            <p className="text-xl text-gray-200">
+              Professional business formation at a fraction of NYC prices
+            </p>
+          </div>
         </div>
-      </div>
 
       <div className="container mx-auto max-w-6xl py-12 px-4">
         <div className="grid md:grid-cols-3 gap-8">
@@ -349,6 +354,40 @@ export default function LLCFormationPage() {
                               </FormControl>
                               <FormDescription>
                                 Describe what your business will do
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="county"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>County</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select county" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="Albany">Albany County</SelectItem>
+                                  <SelectItem value="Bronx">Bronx County</SelectItem>
+                                  <SelectItem value="Kings">Kings County (Brooklyn)</SelectItem>
+                                  <SelectItem value="New York">New York County (Manhattan)</SelectItem>
+                                  <SelectItem value="Queens">Queens County</SelectItem>
+                                  <SelectItem value="Richmond">Richmond County (Staten Island)</SelectItem>
+                                  <SelectItem value="Erie">Erie County</SelectItem>
+                                  <SelectItem value="Monroe">Monroe County</SelectItem>
+                                  <SelectItem value="Nassau">Nassau County</SelectItem>
+                                  <SelectItem value="Suffolk">Suffolk County</SelectItem>
+                                  <SelectItem value="Westchester">Westchester County</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormDescription>
+                                County where LLC will be formed
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -565,6 +604,7 @@ export default function LLCFormationPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </LayoutWrapper>
   );
 }
