@@ -844,7 +844,7 @@ export default function LLCFormationPage() {
                                 <FormItem>
                                   <FormLabel>State *</FormLabel>
                                   <FormControl>
-                                    <Input value="NY" disabled {...field} />
+                                    <Input {...field} disabled />
                                   </FormControl>
                                   <FormMessage />
                                 </FormItem>
