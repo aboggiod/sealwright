@@ -42,8 +42,7 @@ export default function Hero() {
             </Link>
             <Button
               size="lg"
-              variant="outline"
-              className="border-2 border-white text-white hover:bg-white hover:text-primary font-semibold text-lg px-8 py-6"
+              className="bg-accent text-primary hover:bg-accent/90 font-semibold text-lg px-8 py-6"
               onClick={scrollToServices}
             >
               View Services

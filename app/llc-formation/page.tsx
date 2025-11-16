@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import AddressSelection from "@/components/address-selection";
 
 const formSchema = z.object({
   // Step 1: Business Info
@@ -49,6 +50,7 @@ export default function LLCFormationPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [selectedAddress, setSelectedAddress] = useState<"own" | "sealwright" | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -72,6 +74,7 @@ export default function LLCFormationPage() {
 
   const calculateTotal = () => {
     let total = 599; // Base LLC formation
+    if (selectedAddress === "sealwright") total += 75; // Sealwright address
     if (addRegisteredAgent) total += 149;
     if (addBusinessAddress) total += 99;
     return total;
@@ -80,9 +83,9 @@ export default function LLCFormationPage() {
   const nextStep = async () => {
     let fieldsToValidate: Array<keyof z.infer<typeof formSchema>> = [];
 
-    if (currentStep === 1) {
+    if (currentStep === 2) {
       fieldsToValidate = ["businessName", "businessPurpose"];
-    } else if (currentStep === 2) {
+    } else if (currentStep === 3) {
       fieldsToValidate = ["memberName", "memberEmail", "memberPhone", "memberAddress"];
     }
 
@@ -92,12 +95,18 @@ export default function LLCFormationPage() {
     }
   };
 
+  const handleAddressSelect = (choice: "own" | "sealwright") => {
+    setSelectedAddress(choice);
+    setCurrentStep(2); // Move to business info step
+  };
+
   function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true);
 
     const timestamp = new Date().toISOString();
     const orderData = {
       ...values,
+      selectedAddress,
       service: "llc-formation",
       total: calculateTotal(),
       timestamp,
@@ -259,14 +268,15 @@ export default function LLCFormationPage() {
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <CardTitle className="text-3xl font-display text-primary">
-                      {currentStep === 1 && "Business Information"}
-                      {currentStep === 2 && "Member Information"}
-                      {currentStep === 3 && "Additional Services"}
+                      {currentStep === 1 && "Address Selection"}
+                      {currentStep === 2 && "Business Information"}
+                      {currentStep === 3 && "Member Information"}
+                      {currentStep === 4 && "Additional Services"}
                     </CardTitle>
-                    <CardDescription>Step {currentStep} of 3</CardDescription>
+                    <CardDescription>Step {currentStep} of 4</CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {[1, 2, 3].map((step) => (
+                    {[1, 2, 3, 4].map((step) => (
                       <div
                         key={step}
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
@@ -284,10 +294,17 @@ export default function LLCFormationPage() {
                 </div>
               </CardHeader>
               <CardContent>
+                {/* Step 1: Address Selection */}
+                {currentStep === 1 && (
+                  <AddressSelection
+                    onSelect={handleAddressSelect}
+                  />
+                )}
+
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Step 1: Business Info */}
-                    {currentStep === 1 && (
+                    {/* Step 2: Business Info */}
+                    {currentStep === 2 && (
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
@@ -357,8 +374,8 @@ export default function LLCFormationPage() {
                       </div>
                     )}
 
-                    {/* Step 2: Member Info */}
-                    {currentStep === 2 && (
+                    {/* Step 3: Member Info */}
+                    {currentStep === 3 && (
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
@@ -422,8 +439,8 @@ export default function LLCFormationPage() {
                       </div>
                     )}
 
-                    {/* Step 3: Services */}
-                    {currentStep === 3 && (
+                    {/* Step 4: Services */}
+                    {currentStep === 4 && (
                       <div className="space-y-6">
                         <FormField
                           control={form.control}
@@ -506,6 +523,12 @@ export default function LLCFormationPage() {
                               <span className="text-gray-700">LLC Formation</span>
                               <span className="font-semibold">$599</span>
                             </div>
+                            {selectedAddress === "sealwright" && (
+                              <div className="flex justify-between items-center text-sm">
+                                <span className="text-gray-700">Sealwright Address</span>
+                                <span className="font-semibold">$75</span>
+                              </div>
+                            )}
                             {addRegisteredAgent && (
                               <div className="flex justify-between items-center text-sm">
                                 <span className="text-gray-700">Registered Agent</span>
@@ -529,35 +552,37 @@ export default function LLCFormationPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-4">
-                      {currentStep > 1 && (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => setCurrentStep(currentStep - 1)}
-                          className="flex-1"
-                        >
-                          Previous
-                        </Button>
-                      )}
-                      {currentStep < 3 ? (
-                        <Button
-                          type="button"
-                          onClick={nextStep}
-                          className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
-                        >
-                          Next Step
-                        </Button>
-                      ) : (
-                        <Button
-                          type="submit"
-                          className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
-                          disabled={isSubmitting}
-                        >
-                          {isSubmitting ? "Submitting..." : "Submit Application"}
-                        </Button>
-                      )}
-                    </div>
+                    {currentStep > 1 && (
+                      <div className="flex gap-4">
+                        {currentStep > 2 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setCurrentStep(currentStep - 1)}
+                            className="flex-1"
+                          >
+                            Previous
+                          </Button>
+                        )}
+                        {currentStep < 4 ? (
+                          <Button
+                            type="button"
+                            onClick={nextStep}
+                            className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
+                          >
+                            Next Step
+                          </Button>
+                        ) : (
+                          <Button
+                            type="submit"
+                            className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
+                            disabled={isSubmitting}
+                          >
+                            {isSubmitting ? "Submitting..." : "Submit Application"}
+                          </Button>
+                        )}
+                      </div>
+                    )}
                   </form>
                 </Form>
               </CardContent>
