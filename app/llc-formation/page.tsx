@@ -740,7 +740,7 @@ export default function LLCFormationPage() {
                                   <div className="space-y-1 leading-none flex-1">
                                     <FormLabel>Include General Purpose Clause (Recommended)</FormLabel>
                                     <FormDescription>
-                                      "To engage in any lawful act or activity for which an LLC may be formed." Most filers check this for broad business flexibility.
+                                      &quot;To engage in any lawful act or activity for which an LLC may be formed.&quot; Most filers check this for broad business flexibility.
                                     </FormDescription>
                                     {field.value && (
                                       <div className="mt-3">
