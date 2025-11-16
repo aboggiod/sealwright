@@ -263,7 +263,11 @@ export default function LLCFormationPage() {
                       {currentStep === 2 && "Member Information"}
                       {currentStep === 3 && "Additional Services"}
                     </CardTitle>
-                    <CardDescription>Step {currentStep} of 3</CardDescription>
+                    <CardDescription>
+                      {currentStep === 1 && "Pick your adventure. We're the sherpa, you're the climber. Tell us about your business."}
+                      {currentStep === 2 && "Who's running this show? We need contact info so we can let you know when your paperwork is ready."}
+                      {currentStep === 3 && "Want us to handle more? These add-ons make life easier."}
+                    </CardDescription>
                   </div>
                   <div className="flex gap-2">
                     {[1, 2, 3].map((step) => (
@@ -289,6 +293,31 @@ export default function LLCFormationPage() {
                     {/* Step 1: Business Info */}
                     {currentStep === 1 && (
                       <div className="space-y-4">
+                        <div className="mb-6 space-y-4">
+                          <div className="prose max-w-none">
+                            <p className="text-gray-700 leading-relaxed">
+                              We're paper sherpas. We know which desk at the Department of State, which clerk is having a good day,
+                              and where to park without getting towed. What we <em>don't</em> know is whether your business idea is legal,
+                              what your Operating Agreement should say, or the meaning of life.
+                            </p>
+                          </div>
+
+                          <div className="bg-amber-50 border-2 border-amber-200 rounded-lg p-4">
+                            <div className="flex items-start gap-3">
+                              <svg className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                              <div>
+                                <p className="font-semibold text-amber-900 mb-1">NOT LEGAL ADVICE</p>
+                                <p className="text-sm text-amber-800">
+                                  We file papers. We don't practice law. If you need legal advice about your business structure,
+                                  talk to a lawyer. We can recommend some good ones who speak human instead of legalese.
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
                         <FormField
                           control={form.control}
                           name="businessName"
@@ -526,6 +555,40 @@ export default function LLCFormationPage() {
                             </div>
                           </div>
                         </div>
+                      </div>
+                    )}
+
+                    {currentStep === 1 && (
+                      <div className="mt-8 space-y-4">
+                        <Card className="border-accent/30 bg-cream">
+                          <CardContent className="pt-6">
+                            <h3 className="font-semibold text-primary mb-3">What happens after you submit?</h3>
+                            <ul className="space-y-2 text-sm text-gray-700">
+                              <li className="flex gap-2">
+                                <span className="text-accent font-bold">1.</span>
+                                <span>We review your info and prepare your Articles of Organization</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-accent font-bold">2.</span>
+                                <span>We walk your documents to the NYS Department of State (literally walk - it&apos;s 3 blocks from our office)</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-accent font-bold">3.</span>
+                                <span>We wait while they do their stamp-and-file ritual</span>
+                              </li>
+                              <li className="flex gap-2">
+                                <span className="text-accent font-bold">4.</span>
+                                <span>You get your filed documents + free EIN within your selected turnaround time</span>
+                              </li>
+                            </ul>
+                          </CardContent>
+                        </Card>
+
+                        <p className="text-center text-sm text-gray-600">
+                          Questions? Email us at <a href="mailto:drew@papersherpas.com" className="text-accent hover:underline font-medium">drew@papersherpas.com</a>
+                          <br />
+                          (We&apos;re paper sherpas, not ghostbusters, but we know a guy if you need legal advice)
+                        </p>
                       </div>
                     )}
 
