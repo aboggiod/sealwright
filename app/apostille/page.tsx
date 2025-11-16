@@ -2,7 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DocumentUploader } from "@/components/document-uploader";
 import Link from "next/link";
 
 const formSchema = z.object({
@@ -39,6 +40,10 @@ const formSchema = z.object({
 export default function ApostillePage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [uploadedDocuments, setUploadedDocuments] = useState<{ key: string; originalName: string }[]>([]);
+
+  // Generate a unique order ID that persists across re-renders
+  const orderId = useMemo(() => `APO-${Date.now()}`, []);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,6 +75,8 @@ export default function ApostillePage() {
       service: "apostille",
       total: calculateTotal(),
       timestamp,
+      orderId,
+      uploadedDocuments,
     };
 
     localStorage.setItem(`apostille-order-${timestamp}`, JSON.stringify(orderData));
@@ -79,8 +86,13 @@ export default function ApostillePage() {
       setIsSubmitting(false);
       setShowSuccess(true);
       form.reset();
+      setUploadedDocuments([]);
     }, 1500);
   }
+
+  const handleDocumentsUploaded = (documents: { key: string; originalName: string }[]) => {
+    setUploadedDocuments(documents);
+  };
 
   if (showSuccess) {
     return (
@@ -356,6 +368,24 @@ export default function ApostillePage() {
                         </FormItem>
                       )}
                     />
+
+                    {/* Document Upload Section */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Upload Documents (Optional)</label>
+                      <p className="text-sm text-muted-foreground">
+                        Upload scans of your documents for review, or mail originals later
+                      </p>
+                      <DocumentUploader
+                        orderId={orderId}
+                        onUploadComplete={handleDocumentsUploaded}
+                        maxFiles={10}
+                      />
+                      {uploadedDocuments.length > 0 && (
+                        <p className="text-sm text-green-600">
+                          ✓ {uploadedDocuments.length} document(s) uploaded successfully
+                        </p>
+                      )}
+                    </div>
 
                     <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-4">
                       <div className="flex justify-between items-center mb-2">
