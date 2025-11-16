@@ -1,10 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 const services = [
   {
     title: "Apostilles",
     price: "$99",
     description: "State-certified authentication for international document use",
+    link: "/apostille",
     features: [
       "Same-day processing available",
       "All document types accepted",
@@ -21,6 +23,7 @@ const services = [
     title: "LLC Formation",
     price: "$599",
     description: "Complete business entity formation with state filing",
+    link: "/llc-formation",
     features: [
       "Articles of organization filing",
       "Operating agreement included",
@@ -37,6 +40,7 @@ const services = [
     title: "FOIL Requests",
     price: "$100",
     description: "Freedom of Information Law document retrieval",
+    link: "/foil",
     features: [
       "Professional request drafting",
       "Follow-up and tracking",
@@ -53,6 +57,7 @@ const services = [
     title: "Registered Agent",
     price: "$149/year",
     description: "Reliable NYS registered agent service for your business",
+    link: "/registered-agent",
     features: [
       "Albany office address",
       "Legal document acceptance",
@@ -70,7 +75,7 @@ const services = [
 
 export default function Services() {
   return (
-    <section className="py-20 px-4 bg-white">
+    <section id="services" className="py-20 px-4 bg-white">
       <div className="container mx-auto max-w-6xl">
         <div className="text-center mb-16">
           <h2 className="font-display text-4xl md:text-5xl font-bold text-primary mb-4">
@@ -83,39 +88,38 @@ export default function Services() {
 
         <div className="grid md:grid-cols-2 gap-6">
           {services.map((service, index) => (
-            <Card
-              key={index}
-              className="border-2 hover:border-accent transition-colors duration-300 hover:shadow-lg"
-            >
-              <CardHeader>
-                <div className="flex items-start justify-between mb-4">
-                  <div className="text-accent">{service.icon}</div>
-                  <div className="text-right">
-                    <div className="font-display text-3xl font-bold text-primary">
-                      {service.price}
+            <Link key={index} href={service.link}>
+              <Card className="border-2 hover:border-accent transition-colors duration-300 hover:shadow-lg cursor-pointer h-full">
+                <CardHeader>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="text-accent">{service.icon}</div>
+                    <div className="text-right">
+                      <div className="font-display text-3xl font-bold text-primary">
+                        {service.price}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <CardTitle className="text-2xl font-display text-primary">
-                  {service.title}
-                </CardTitle>
-                <CardDescription className="text-base">
-                  {service.description}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {service.features.map((feature, fIndex) => (
-                    <li key={fIndex} className="flex items-start gap-2">
-                      <svg className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                      </svg>
-                      <span className="text-gray-700">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+                  <CardTitle className="text-2xl font-display text-primary">
+                    {service.title}
+                  </CardTitle>
+                  <CardDescription className="text-base">
+                    {service.description}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    {service.features.map((feature, fIndex) => (
+                      <li key={fIndex} className="flex items-start gap-2">
+                        <svg className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </div>
       </div>

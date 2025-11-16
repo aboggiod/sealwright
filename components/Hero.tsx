@@ -1,6 +1,14 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default function Hero() {
+  const scrollToServices = () => {
+    const element = document.getElementById('services');
+    element?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="relative bg-primary text-white py-24 px-4 overflow-hidden">
       {/* Geometric pattern background */}
@@ -24,16 +32,19 @@ export default function Hero() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
-            <Button
-              size="lg"
-              className="bg-accent text-primary hover:bg-accent/90 font-semibold text-lg px-8 py-6"
-            >
-              Get Started Today
-            </Button>
+            <Link href="/apostille">
+              <Button
+                size="lg"
+                className="bg-accent text-primary hover:bg-accent/90 font-semibold text-lg px-8 py-6"
+              >
+                Get Started Today
+              </Button>
+            </Link>
             <Button
               size="lg"
               variant="outline"
               className="border-2 border-white text-white hover:bg-white hover:text-primary font-semibold text-lg px-8 py-6"
+              onClick={scrollToServices}
             >
               View Services
             </Button>
