@@ -26,22 +26,97 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 
+// NY Counties for the dropdown
+const NY_COUNTIES = [
+  "Albany", "Allegany", "Bronx", "Broome", "Cattaraugus", "Cayuga", "Chautauqua",
+  "Chemung", "Chenango", "Clinton", "Columbia", "Cortland", "Delaware", "Dutchess",
+  "Erie", "Essex", "Franklin", "Fulton", "Genesee", "Greene", "Hamilton", "Herkimer",
+  "Jefferson", "Kings", "Lewis", "Livingston", "Madison", "Monroe", "Montgomery",
+  "Nassau", "New York", "Niagara", "Oneida", "Onondaga", "Ontario", "Orange",
+  "Orleans", "Oswego", "Otsego", "Putnam", "Queens", "Rensselaer", "Richmond",
+  "Rockland", "St. Lawrence", "Saratoga", "Schenectady", "Schoharie", "Schuyler",
+  "Seneca", "Steuben", "Suffolk", "Sullivan", "Tioga", "Tompkins", "Ulster",
+  "Warren", "Washington", "Wayne", "Westchester", "Wyoming", "Yates"
+];
+
+// Phone number formatting function
+const formatPhoneNumber = (value: string) => {
+  const cleaned = value.replace(/\D/g, "");
+  if (cleaned.length <= 3) return cleaned;
+  if (cleaned.length <= 6) return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3)}`;
+  return `(${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6, 10)}`;
+};
+
+// Validation schema with comprehensive checks
 const formSchema = z.object({
-  // Step 1: Business Info
-  businessName: z.string().min(3, "Business name must be at least 3 characters"),
-  businessNameAlt1: z.string().optional(),
-  businessNameAlt2: z.string().optional(),
-  businessPurpose: z.string().min(10, "Please provide a brief description"),
+  // Step 1: Name Determination
+  llcName: z.string()
+    .min(3, "LLC name must be at least 3 characters")
+    .refine(
+      (val) => {
+        const lower = val.toLowerCase();
+        return lower.endsWith("llc") ||
+               lower.endsWith("l.l.c.") ||
+               lower.endsWith("limited liability company");
+      },
+      "LLC name must end with 'LLC', 'L.L.C.', or 'Limited Liability Company'"
+    ),
+  llcNameAlt1: z.string().optional(),
+  llcNameAlt2: z.string().optional(),
 
-  // Step 2: Member Info
-  memberName: z.string().min(2, "Member name is required"),
-  memberEmail: z.string().email("Invalid email address"),
-  memberPhone: z.string().min(10, "Phone number must be at least 10 digits"),
-  memberAddress: z.string().min(10, "Complete address required"),
+  // Step 2: Name Verification & County
+  county: z.string().min(1, "Please select a county"),
+  includeOpeningStatement: z.boolean(),
+  hasNonEnglishWords: z.boolean(),
+  nonEnglishTranslation: z.string().optional(),
+  includePurposeClause: z.boolean(),
+  specificPurpose: z.string().optional(),
 
-  // Step 3: Service Selection
-  registeredAddress: z.enum(["own", "sealwright"]),
-  addRegisteredAgent: z.boolean(),
+  // Step 3: Service of Process / Registered Agent
+  forwardingName: z.string().min(2, "Name is required"),
+  forwardingAddress: z.string().min(10, "Complete address required"),
+  forwardingCity: z.string().min(2, "City is required"),
+  forwardingState: z.string().default("NY"),
+  forwardingZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
+
+  includeRegisteredAgent: z.boolean(),
+  registeredAgentName: z.string().optional(),
+  registeredAgentAddress: z.string().optional(),
+  registeredAgentCity: z.string().optional(),
+  registeredAgentZip: z.string().optional(),
+
+  // Step 4: Optional Statements
+  includeManagementStructure: z.boolean(),
+  managementType: z.enum(["member", "manager"]).optional(),
+  managerNames: z.string().optional(),
+
+  includeEffectiveDate: z.boolean(),
+  effectiveDate: z.string().optional(),
+
+  includeDissolutionDate: z.boolean(),
+  dissolutionDate: z.string().optional(),
+
+  includeLiabilityStatement: z.boolean(),
+
+  // Step 5: Organizer & Filer Information
+  organizerName: z.string().min(2, "Organizer name is required"),
+  organizerAddress: z.string().min(10, "Complete address required"),
+  organizerCity: z.string().min(2, "City is required"),
+  organizerState: z.string().default("NY"),
+  organizerZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
+
+  filerName: z.string().min(2, "Filer name is required"),
+  filerEmail: z.string().email("Invalid email address"),
+  filerPhone: z.string()
+    .min(10, "Phone number must be at least 10 digits")
+    .regex(/^\(\d{3}\) \d{3}-\d{4}$|^\d{10}$/, "Invalid phone number format"),
+  filerAddress: z.string().min(10, "Complete address required"),
+  filerCity: z.string().min(2, "City is required"),
+  filerState: z.string().default("NY"),
+  filerZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
+
+  // Additional services
+  addRegisteredAgentService: z.boolean(),
   addBusinessAddress: z.boolean(),
 });
 
@@ -52,38 +127,94 @@ export default function LLCFormationPage() {
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
+    mode: "onTouched", // Only validate after field is touched
     defaultValues: {
-      businessName: "",
-      businessNameAlt1: "",
-      businessNameAlt2: "",
-      businessPurpose: "",
-      memberName: "",
-      memberEmail: "",
-      memberPhone: "",
-      memberAddress: "",
-      registeredAddress: "own",
-      addRegisteredAgent: false,
+      llcName: "",
+      llcNameAlt1: "",
+      llcNameAlt2: "",
+      county: "",
+      includeOpeningStatement: false,
+      hasNonEnglishWords: false,
+      nonEnglishTranslation: "",
+      includePurposeClause: true, // Most people include this
+      specificPurpose: "",
+      forwardingName: "",
+      forwardingAddress: "",
+      forwardingCity: "",
+      forwardingState: "NY",
+      forwardingZip: "",
+      includeRegisteredAgent: false,
+      registeredAgentName: "",
+      registeredAgentAddress: "",
+      registeredAgentCity: "",
+      registeredAgentZip: "",
+      includeManagementStructure: false,
+      managementType: "member",
+      managerNames: "",
+      includeEffectiveDate: false,
+      effectiveDate: "",
+      includeDissolutionDate: false,
+      dissolutionDate: "",
+      includeLiabilityStatement: false,
+      organizerName: "",
+      organizerAddress: "",
+      organizerCity: "",
+      organizerState: "NY",
+      organizerZip: "",
+      filerName: "",
+      filerEmail: "",
+      filerPhone: "",
+      filerAddress: "",
+      filerCity: "",
+      filerState: "NY",
+      filerZip: "",
+      addRegisteredAgentService: false,
       addBusinessAddress: false,
     },
   });
 
-  const addRegisteredAgent = form.watch("addRegisteredAgent");
-  const addBusinessAddress = form.watch("addBusinessAddress");
+  const watchedValues = form.watch();
 
   const calculateTotal = () => {
-    let total = 599; // Base LLC formation
-    if (addRegisteredAgent) total += 149;
-    if (addBusinessAddress) total += 99;
+    let total = 599; // Base LLC formation (includes filing + publication + service)
+    if (watchedValues.addRegisteredAgentService) total += 149;
+    if (watchedValues.addBusinessAddress) total += 99;
     return total;
   };
 
   const nextStep = async () => {
     let fieldsToValidate: Array<keyof z.infer<typeof formSchema>> = [];
 
-    if (currentStep === 1) {
-      fieldsToValidate = ["businessName", "businessPurpose"];
-    } else if (currentStep === 2) {
-      fieldsToValidate = ["memberName", "memberEmail", "memberPhone", "memberAddress"];
+    switch (currentStep) {
+      case 1: // Name Determination
+        fieldsToValidate = ["llcName"];
+        break;
+      case 2: // Name Verification & County
+        fieldsToValidate = ["county"];
+        if (watchedValues.hasNonEnglishWords) {
+          fieldsToValidate.push("nonEnglishTranslation");
+        }
+        break;
+      case 3: // Service of Process
+        fieldsToValidate = ["forwardingName", "forwardingAddress", "forwardingCity", "forwardingState", "forwardingZip"];
+        if (watchedValues.includeRegisteredAgent) {
+          fieldsToValidate.push("registeredAgentName", "registeredAgentAddress", "registeredAgentCity", "registeredAgentZip");
+        }
+        break;
+      case 4: // Optional Statements
+        if (watchedValues.includeEffectiveDate) {
+          fieldsToValidate.push("effectiveDate");
+        }
+        if (watchedValues.includeDissolutionDate) {
+          fieldsToValidate.push("dissolutionDate");
+        }
+        break;
+      case 5: // Organizer & Filer Information
+        fieldsToValidate = [
+          "organizerName", "organizerAddress", "organizerCity", "organizerState", "organizerZip",
+          "filerName", "filerEmail", "filerPhone", "filerAddress", "filerCity", "filerState", "filerZip"
+        ];
+        break;
     }
 
     const isValid = await form.trigger(fieldsToValidate);
@@ -103,8 +234,10 @@ export default function LLCFormationPage() {
       timestamp,
     };
 
+    // Save to localStorage
     localStorage.setItem(`llc-formation-${timestamp}`, JSON.stringify(orderData));
 
+    // In production, this would call an API to generate the AOO PDF
     setTimeout(() => {
       setIsSubmitting(false);
       setShowSuccess(true);
@@ -131,8 +264,18 @@ export default function LLCFormationPage() {
             </CardHeader>
             <CardContent className="text-center space-y-4">
               <p className="text-gray-600">
-                We&apos;ll begin processing your LLC formation and contact you within 24 hours with next steps.
+                We&apos;ll prepare your Articles of Organization and contact you within 24 hours with next steps.
               </p>
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-left max-w-md mx-auto">
+                <h4 className="font-semibold text-primary mb-2">Next Steps:</h4>
+                <ul className="space-y-1 text-sm text-gray-700">
+                  <li>✓ We&apos;ll review your information</li>
+                  <li>✓ Generate your Articles of Organization</li>
+                  <li>✓ File with NY Department of State</li>
+                  <li>✓ Handle publication requirements</li>
+                  <li>✓ Send you all documentation</li>
+                </ul>
+              </div>
               <div className="flex gap-4 justify-center pt-4">
                 <Button onClick={() => setShowSuccess(false)} variant="outline">
                   Submit Another Application
@@ -148,137 +291,118 @@ export default function LLCFormationPage() {
     );
   }
 
+  const totalSteps = 6;
+
   return (
     <div className="min-h-screen bg-cream">
       {/* Header */}
-      <div className="bg-primary text-white py-16 px-4">
+      <div className="bg-primary text-white py-12 px-4">
         <div className="container mx-auto max-w-4xl">
           <Link href="/" className="text-accent hover:underline mb-4 inline-block">
             ← Back to Home
           </Link>
-          <h1 className="font-display text-5xl font-bold mb-4">LLC Formation</h1>
+          <h1 className="font-display text-4xl md:text-5xl font-bold mb-4">New York LLC Formation</h1>
           <p className="text-xl text-gray-200">
-            Professional business formation at a fraction of NYC prices
+            Professional business formation following NYS Department of State procedures
           </p>
         </div>
       </div>
 
       <div className="container mx-auto max-w-6xl py-12 px-4">
         <div className="grid md:grid-cols-3 gap-8">
-          {/* Info Section */}
+          {/* Sidebar */}
           <div className="md:col-span-1 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="font-display text-primary">NYC vs Albany Pricing</CardTitle>
+                <CardTitle className="font-display text-primary">Your Savings</CardTitle>
               </CardHeader>
               <CardContent>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Service</th>
-                      <th className="text-right py-2">NYC</th>
-                      <th className="text-right py-2 text-accent">Albany</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-700">
-                    <tr className="border-b">
-                      <td className="py-2">Filing</td>
-                      <td className="text-right">$500</td>
-                      <td className="text-right font-bold">$200</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Publication</td>
-                      <td className="text-right">$1500</td>
-                      <td className="text-right font-bold">$200</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Service Fee</td>
-                      <td className="text-right">$500</td>
-                      <td className="text-right font-bold">$199</td>
-                    </tr>
-                    <tr className="font-bold">
-                      <td className="py-2">Total</td>
-                      <td className="text-right text-lg">$2,500</td>
-                      <td className="text-right text-accent text-xl">$599</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-4 text-center">
-                  <div className="text-2xl font-display font-bold text-primary">
-                    Save $1,901
+                <div className="text-center py-4">
+                  <div className="text-sm text-gray-600 mb-2">NYC Cost</div>
+                  <div className="text-2xl font-bold text-gray-400 line-through">$2,500+</div>
+                  <div className="text-sm text-gray-600 mt-4 mb-2">Albany Cost</div>
+                  <div className="text-4xl font-display font-bold text-accent mb-2">$599</div>
+                  <div className="inline-block bg-accent/10 text-primary px-4 py-2 rounded-full font-semibold">
+                    Save $1,901 (76%)
                   </div>
-                  <div className="text-sm text-gray-600">76% savings</div>
                 </div>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="font-display text-primary">What&apos;s Included</CardTitle>
+                <CardTitle className="font-display text-primary">Process Steps</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
+              <CardContent className="space-y-3">
                 {[
-                  "Articles of Organization filing",
-                  "Albany publication (required)",
-                  "EIN application assistance",
-                  "Operating agreement template",
-                  "Compliance calendar",
-                  "Initial consultation",
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700 text-sm">{item}</span>
+                  { num: 1, title: "Name Determination", desc: "Choose your LLC name" },
+                  { num: 2, title: "County & Options", desc: "Select county and clauses" },
+                  { num: 3, title: "Service of Process", desc: "Forwarding address" },
+                  { num: 4, title: "Optional Provisions", desc: "Management & dates" },
+                  { num: 5, title: "Contact Information", desc: "Organizer & filer details" },
+                  { num: 6, title: "Review & Submit", desc: "Confirm and complete" },
+                ].map((step) => (
+                  <div key={step.num} className={`flex gap-3 ${currentStep === step.num ? "opacity-100" : "opacity-50"}`}>
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                      currentStep === step.num
+                        ? "bg-accent text-primary"
+                        : currentStep > step.num
+                        ? "bg-primary text-white"
+                        : "bg-gray-200 text-gray-500"
+                    }`}>
+                      {step.num}
+                    </div>
+                    <div>
+                      <div className={`font-semibold text-sm ${currentStep === step.num ? "text-primary" : "text-gray-700"}`}>
+                        {step.title}
+                      </div>
+                      <div className="text-xs text-gray-600">{step.desc}</div>
+                    </div>
                   </div>
                 ))}
               </CardContent>
             </Card>
 
-            <Card className="bg-accent/5 border-2 border-accent/20">
+            <Card className="bg-blue-50 border-2 border-blue-200">
               <CardHeader>
-                <CardTitle className="font-display text-primary">Optional Add-ons</CardTitle>
+                <CardTitle className="font-display text-primary text-sm">💡 Why Albany?</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Registered Agent</span>
-                  <span className="font-bold text-primary">+$149/yr</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Business Address</span>
-                  <span className="font-bold text-primary">+$99/mo</span>
-                </div>
+              <CardContent className="text-xs text-gray-700 space-y-2">
+                <p>
+                  Publication costs vary wildly by county. NYC newspapers can charge $1,500+ for the required publication,
+                  while Albany newspapers charge around $200.
+                </p>
+                <p className="font-semibold text-primary">
+                  Same filing, same state, 87% less expensive!
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          {/* Multi-step Form */}
+          {/* Main Form */}
           <div className="md:col-span-2">
             <Card className="border-2 border-primary/20">
               <CardHeader>
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-start mb-4">
                   <div>
-                    <CardTitle className="text-3xl font-display text-primary">
-                      {currentStep === 1 && "Business Information"}
-                      {currentStep === 2 && "Member Information"}
-                      {currentStep === 3 && "Additional Services"}
+                    <CardTitle className="text-2xl md:text-3xl font-display text-primary">
+                      {currentStep === 1 && "Name Determination"}
+                      {currentStep === 2 && "Name Verification & County"}
+                      {currentStep === 3 && "Service of Process"}
+                      {currentStep === 4 && "Optional Provisions"}
+                      {currentStep === 5 && "Organizer & Filer Information"}
+                      {currentStep === 6 && "Review & Submit"}
                     </CardTitle>
-                    <CardDescription>Step {currentStep} of 3</CardDescription>
+                    <CardDescription>Step {currentStep} of {totalSteps}</CardDescription>
                   </div>
-                  <div className="flex gap-2">
-                    {[1, 2, 3].map((step) => (
+                  <div className="flex gap-1">
+                    {Array.from({ length: totalSteps }).map((_, idx) => (
                       <div
-                        key={step}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                          step === currentStep
-                            ? "bg-accent text-primary"
-                            : step < currentStep
-                            ? "bg-primary text-white"
-                            : "bg-gray-200 text-gray-500"
+                        key={idx}
+                        className={`h-2 w-8 rounded-full ${
+                          idx + 1 <= currentStep ? "bg-accent" : "bg-gray-200"
                         }`}
-                      >
-                        {step}
-                      </div>
+                      />
                     ))}
                   </div>
                 </div>
@@ -286,20 +410,35 @@ export default function LLCFormationPage() {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Step 1: Business Info */}
+
+                    {/* Step 1: Name Determination */}
                     {currentStep === 1 && (
-                      <div className="space-y-4">
+                      <div className="space-y-6">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
+                          <strong>Important:</strong> Your LLC name must include "LLC", "L.L.C.", or "Limited Liability Company".
+                          We recommend checking name availability on the{" "}
+                          <a
+                            href="https://apps.dos.ny.gov/publicInquiry/"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            NYS Department of State website
+                          </a>
+                          {" "}before continuing.
+                        </div>
+
                         <FormField
                           control={form.control}
-                          name="businessName"
+                          name="llcName"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Desired Business Name</FormLabel>
+                              <FormLabel>Desired LLC Name *</FormLabel>
                               <FormControl>
-                                <Input placeholder="Example LLC" {...field} />
+                                <Input placeholder="Example Business LLC" {...field} />
                               </FormControl>
                               <FormDescription>
-                                Must end with LLC, L.L.C., or Limited Liability Company
+                                First choice for your LLC name
                               </FormDescription>
                               <FormMessage />
                             </FormItem>
@@ -308,12 +447,12 @@ export default function LLCFormationPage() {
 
                         <FormField
                           control={form.control}
-                          name="businessNameAlt1"
+                          name="llcNameAlt1"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Alternative Name 1 (Optional)</FormLabel>
                               <FormControl>
-                                <Input placeholder="Backup name if first choice is taken" {...field} />
+                                <Input placeholder="Backup name if first choice is unavailable" {...field} />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -322,7 +461,7 @@ export default function LLCFormationPage() {
 
                         <FormField
                           control={form.control}
-                          name="businessNameAlt2"
+                          name="llcNameAlt2"
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel>Alternative Name 2 (Optional)</FormLabel>
@@ -333,203 +472,976 @@ export default function LLCFormationPage() {
                             </FormItem>
                           )}
                         />
-
-                        <FormField
-                          control={form.control}
-                          name="businessPurpose"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Business Purpose</FormLabel>
-                              <FormControl>
-                                <Textarea
-                                  placeholder="Brief description of your business activities..."
-                                  className="min-h-[100px]"
-                                  {...field}
-                                />
-                              </FormControl>
-                              <FormDescription>
-                                Describe what your business will do
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
                       </div>
                     )}
 
-                    {/* Step 2: Member Info */}
+                    {/* Step 2: Name Verification & County */}
                     {currentStep === 2 && (
-                      <div className="space-y-4">
-                        <FormField
-                          control={form.control}
-                          name="memberName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Primary Member Name</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Full legal name" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="grid md:grid-cols-2 gap-4">
-                          <FormField
-                            control={form.control}
-                            name="memberEmail"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Email</FormLabel>
-                                <FormControl>
-                                  <Input type="email" placeholder="member@example.com" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
-                          <FormField
-                            control={form.control}
-                            name="memberPhone"
-                            render={({ field }) => (
-                              <FormItem>
-                                <FormLabel>Phone</FormLabel>
-                                <FormControl>
-                                  <Input placeholder="(555) 123-4567" {...field} />
-                                </FormControl>
-                                <FormMessage />
-                              </FormItem>
-                            )}
-                          />
+                      <div className="space-y-6">
+                        <div className="bg-accent/10 border border-accent/20 rounded-lg p-4">
+                          <div className="font-semibold text-primary mb-1">Selected LLC Name:</div>
+                          <div className="text-lg">{watchedValues.llcName || "Not entered"}</div>
                         </div>
 
                         <FormField
                           control={form.control}
-                          name="memberAddress"
+                          name="county"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel>Member Address</FormLabel>
-                              <FormControl>
-                                <Input placeholder="123 Main St, City, State ZIP" {...field} />
-                              </FormControl>
+                              <FormLabel>County for LLC Office *</FormLabel>
+                              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue placeholder="Select a county" />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent className="max-h-[300px]">
+                                  {NY_COUNTIES.map((county) => (
+                                    <SelectItem key={county} value={county}>
+                                      {county}
+                                      {county === "Albany" && " (Recommended - Lowest publication cost)"}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
                               <FormDescription>
-                                This will be listed in public records
+                                This determines your publication newspaper and cost. Albany has the lowest publication costs.
                               </FormDescription>
                               <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="border-t pt-6">
+                          <h3 className="font-semibold text-primary mb-4">Optional Clauses</h3>
+
+                          <div className="space-y-4">
+                            <FormField
+                              control={form.control}
+                              name="includeOpeningStatement"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                    <input
+                                      type="checkbox"
+                                      checked={field.value}
+                                      onChange={field.onChange}
+                                      className="h-4 w-4 mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Include Optional Opening Statement</FormLabel>
+                                    <FormDescription>
+                                      States that LLC is formed under NY LLC Law §203 by person(s) at least 18 years old. Most filers leave this unchecked.
+                                    </FormDescription>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="hasNonEnglishWords"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                  <FormControl>
+                                    <input
+                                      type="checkbox"
+                                      checked={field.value}
+                                      onChange={field.onChange}
+                                      className="h-4 w-4 mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none flex-1">
+                                    <FormLabel>LLC Name Contains Non-English Words</FormLabel>
+                                    <FormDescription>
+                                      If checked, you must provide an English translation
+                                    </FormDescription>
+                                    {field.value && (
+                                      <div className="mt-3">
+                                        <FormField
+                                          control={form.control}
+                                          name="nonEnglishTranslation"
+                                          render={({ field: translationField }) => (
+                                            <FormItem>
+                                              <FormControl>
+                                                <Input
+                                                  placeholder="English translation of non-English words"
+                                                  {...translationField}
+                                                />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="includePurposeClause"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 bg-green-50">
+                                  <FormControl>
+                                    <input
+                                      type="checkbox"
+                                      checked={field.value}
+                                      onChange={field.onChange}
+                                      className="h-4 w-4 mt-1"
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none flex-1">
+                                    <FormLabel>Include General Purpose Clause (Recommended)</FormLabel>
+                                    <FormDescription>
+                                      "To engage in any lawful act or activity for which an LLC may be formed." Most filers check this for broad business flexibility.
+                                    </FormDescription>
+                                    {field.value && (
+                                      <div className="mt-3">
+                                        <FormField
+                                          control={form.control}
+                                          name="specificPurpose"
+                                          render={({ field: purposeField }) => (
+                                            <FormItem>
+                                              <FormLabel className="text-xs">Or specify a different purpose (optional):</FormLabel>
+                                              <FormControl>
+                                                <Textarea
+                                                  placeholder="Leave blank to use general purpose clause..."
+                                                  className="min-h-[80px]"
+                                                  {...purposeField}
+                                                />
+                                              </FormControl>
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                    )}
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 3: Service of Process / Registered Agent */}
+                    {currentStep === 3 && (
+                      <div className="space-y-6">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                          <strong>Service of Process:</strong> The NY Secretary of State is automatically designated as your agent
+                          for service of process. You must provide an address where legal documents will be forwarded.
+                        </div>
+
+                        <div className="space-y-4">
+                          <h3 className="font-semibold text-primary">Address for Forwarding Service of Process *</h3>
+
+                          <FormField
+                            control={form.control}
+                            name="forwardingName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Name *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="Individual or company name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="forwardingAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Street Address *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123 Main Street" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  <button
+                                    type="button"
+                                    className="text-blue-600 hover:underline text-xs"
+                                    onClick={() => {
+                                      // TODO: Implement address lookup
+                                      alert("Address lookup feature coming soon!");
+                                    }}
+                                  >
+                                    🔍 Lookup Address
+                                  </button>
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="forwardingCity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>City *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Albany" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="forwardingState"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>State *</FormLabel>
+                                  <FormControl>
+                                    <Input value="NY" disabled {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="forwardingZip"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>ZIP Code *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="12207" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6">
+                          <FormField
+                            control={form.control}
+                            name="includeRegisteredAgent"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={field.onChange}
+                                    className="h-4 w-4 mt-1"
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none flex-1">
+                                  <FormLabel>Include Optional Registered Agent Designation</FormLabel>
+                                  <FormDescription>
+                                    Designate a specific registered agent in addition to the statutory SSNY agent. Most filers leave this unchecked.
+                                  </FormDescription>
+                                  {field.value && (
+                                    <div className="mt-4 space-y-3 pl-0">
+                                      <FormField
+                                        control={form.control}
+                                        name="registeredAgentName"
+                                        render={({ field: agentField }) => (
+                                          <FormItem>
+                                            <FormLabel className="text-sm">Registered Agent Name</FormLabel>
+                                            <FormControl>
+                                              <Input placeholder="Agent name" {...agentField} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <FormField
+                                        control={form.control}
+                                        name="registeredAgentAddress"
+                                        render={({ field: agentField }) => (
+                                          <FormItem>
+                                            <FormLabel className="text-sm">Registered Agent Address (NY only)</FormLabel>
+                                            <FormControl>
+                                              <Input placeholder="Physical NY address" {...agentField} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      <div className="grid grid-cols-2 gap-3">
+                                        <FormField
+                                          control={form.control}
+                                          name="registeredAgentCity"
+                                          render={({ field: agentField }) => (
+                                            <FormItem>
+                                              <FormLabel className="text-sm">City</FormLabel>
+                                              <FormControl>
+                                                <Input placeholder="City" {...agentField} />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                        <FormField
+                                          control={form.control}
+                                          name="registeredAgentZip"
+                                          render={({ field: agentField }) => (
+                                            <FormItem>
+                                              <FormLabel className="text-sm">ZIP Code</FormLabel>
+                                              <FormControl>
+                                                <Input placeholder="12207" {...agentField} />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 4: Optional Provisions */}
+                    {currentStep === 4 && (
+                      <div className="space-y-6">
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                          These optional provisions can be included in your Articles of Organization. If left unchecked,
+                          you can address these items in your Operating Agreement instead.
+                        </div>
+
+                        <FormField
+                          control={form.control}
+                          name="includeManagementStructure"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 mt-1"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none flex-1">
+                                <FormLabel>Include Management Structure</FormLabel>
+                                <FormDescription>
+                                  Specify whether the LLC is member-managed or manager-managed. Most filers handle this in the Operating Agreement.
+                                </FormDescription>
+                                {field.value && (
+                                  <div className="mt-4 space-y-3">
+                                    <FormField
+                                      control={form.control}
+                                      name="managementType"
+                                      render={({ field: mgmtField }) => (
+                                        <FormItem>
+                                          <Select onValueChange={mgmtField.onChange} defaultValue={mgmtField.value}>
+                                            <FormControl>
+                                              <SelectTrigger>
+                                                <SelectValue />
+                                              </SelectTrigger>
+                                            </FormControl>
+                                            <SelectContent>
+                                              <SelectItem value="member">Member-Managed</SelectItem>
+                                              <SelectItem value="manager">Manager-Managed</SelectItem>
+                                            </SelectContent>
+                                          </Select>
+                                        </FormItem>
+                                      )}
+                                    />
+                                    {watchedValues.managementType === "manager" && (
+                                      <FormField
+                                        control={form.control}
+                                        name="managerNames"
+                                        render={({ field: managerField }) => (
+                                          <FormItem>
+                                            <FormLabel className="text-sm">Manager Names and Addresses</FormLabel>
+                                            <FormControl>
+                                              <Textarea
+                                                placeholder="List each manager's name and address..."
+                                                className="min-h-[80px]"
+                                                {...managerField}
+                                              />
+                                            </FormControl>
+                                          </FormItem>
+                                        )}
+                                      />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="includeEffectiveDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 mt-1"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none flex-1">
+                                <FormLabel>Include Optional Effective Date</FormLabel>
+                                <FormDescription>
+                                  Specify a future effective date (up to 60 days). If unchecked, effective date is the approval date.
+                                </FormDescription>
+                                {field.value && (
+                                  <div className="mt-3">
+                                    <FormField
+                                      control={form.control}
+                                      name="effectiveDate"
+                                      render={({ field: dateField }) => (
+                                        <FormItem>
+                                          <FormControl>
+                                            <Input type="date" {...dateField} />
+                                          </FormControl>
+                                          <FormDescription className="text-xs">
+                                            Must be within 60 days of filing
+                                          </FormDescription>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="includeDissolutionDate"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 mt-1"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none flex-1">
+                                <FormLabel>Include Optional Dissolution Date</FormLabel>
+                                <FormDescription>
+                                  Specify a future date for automatic dissolution. If unchecked, LLC has perpetual duration (recommended).
+                                </FormDescription>
+                                {field.value && (
+                                  <div className="mt-3">
+                                    <FormField
+                                      control={form.control}
+                                      name="dissolutionDate"
+                                      render={({ field: dateField }) => (
+                                        <FormItem>
+                                          <FormControl>
+                                            <Input type="date" {...dateField} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="includeLiabilityStatement"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                              <FormControl>
+                                <input
+                                  type="checkbox"
+                                  checked={field.value}
+                                  onChange={field.onChange}
+                                  className="h-4 w-4 mt-1"
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Include Optional Liability/Indemnification Statement</FormLabel>
+                                <FormDescription>
+                                  Includes indemnification provision for members, managers, agents, and employees.
+                                  Most people leave this unchecked and handle indemnification in the Operating Agreement.
+                                </FormDescription>
+                              </div>
                             </FormItem>
                           )}
                         />
                       </div>
                     )}
 
-                    {/* Step 3: Services */}
-                    {currentStep === 3 && (
+                    {/* Step 5: Organizer & Filer Information */}
+                    {currentStep === 5 && (
                       <div className="space-y-6">
-                        <FormField
-                          control={form.control}
-                          name="registeredAddress"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Registered Office Address</FormLabel>
-                              <FormControl>
-                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="own">Use my own address (free)</SelectItem>
-                                    <SelectItem value="sealwright">Use Sealwright address ($49/yr)</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </FormControl>
-                              <FormDescription>
-                                Required address for official correspondence
-                              </FormDescription>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
+                          <strong>Required Information:</strong> NYS requires organizer and filer information for the Articles of Organization.
+                          The organizer and filer can be the same person.
+                        </div>
 
-                        <FormField
-                          control={form.control}
-                          name="addRegisteredAgent"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4 mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="font-semibold">
-                                  Add Registered Agent Service (+$149/year)
-                                </FormLabel>
+                        <div className="space-y-4">
+                          <h3 className="font-semibold text-primary border-b pb-2">Organizer Information</h3>
+
+                          <FormField
+                            control={form.control}
+                            name="organizerName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Organizer Full Name *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="John Doe" {...field} />
+                                </FormControl>
                                 <FormDescription>
-                                  We&apos;ll accept legal documents and forward them to you promptly
+                                  Legal name of the person forming the LLC
                                 </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <FormField
-                          control={form.control}
-                          name="addBusinessAddress"
-                          render={({ field }) => (
-                            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                              <FormControl>
-                                <input
-                                  type="checkbox"
-                                  checked={field.value}
-                                  onChange={field.onChange}
-                                  className="h-4 w-4 mt-1"
-                                />
-                              </FormControl>
-                              <div className="space-y-1 leading-none">
-                                <FormLabel className="font-semibold">
-                                  Add Virtual Business Address (+$99/month)
-                                </FormLabel>
+                          <FormField
+                            control={form.control}
+                            name="organizerAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Organizer Street Address *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123 Main Street" {...field} />
+                                </FormControl>
                                 <FormDescription>
-                                  Professional Albany address for your business cards and website
+                                  <button
+                                    type="button"
+                                    className="text-blue-600 hover:underline text-xs"
+                                    onClick={() => {
+                                      alert("Address lookup feature coming soon!");
+                                    }}
+                                  >
+                                    🔍 Lookup Address
+                                  </button>
                                 </FormDescription>
-                              </div>
-                            </FormItem>
-                          )}
-                        />
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
 
-                        <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-4">
-                          <div className="space-y-2">
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="organizerCity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>City *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Albany" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="organizerState"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>State *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="NY" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="organizerZip"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>ZIP Code *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="12207" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6 space-y-4">
+                          <div className="flex justify-between items-center">
+                            <h3 className="font-semibold text-primary">Filer Information</h3>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                form.setValue("filerName", watchedValues.organizerName);
+                                form.setValue("filerAddress", watchedValues.organizerAddress);
+                                form.setValue("filerCity", watchedValues.organizerCity);
+                                form.setValue("filerState", watchedValues.organizerState);
+                                form.setValue("filerZip", watchedValues.organizerZip);
+                              }}
+                            >
+                              Copy from Organizer
+                            </Button>
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="filerName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Filer Full Name *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="John Doe" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  Person submitting this application (can be same as organizer)
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="filerEmail"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Filer Email *</FormLabel>
+                                  <FormControl>
+                                    <Input type="email" placeholder="john@example.com" {...field} />
+                                  </FormControl>
+                                  <FormDescription>
+                                    For order updates
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="filerPhone"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Filer Phone *</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="(555) 123-4567"
+                                      {...field}
+                                      onChange={(e) => {
+                                        const formatted = formatPhoneNumber(e.target.value);
+                                        field.onChange(formatted);
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    For urgent questions
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <FormField
+                            control={form.control}
+                            name="filerAddress"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Filer Street Address *</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="123 Main Street" {...field} />
+                                </FormControl>
+                                <FormDescription>
+                                  <button
+                                    type="button"
+                                    className="text-blue-600 hover:underline text-xs"
+                                    onClick={() => {
+                                      alert("Address lookup feature coming soon!");
+                                    }}
+                                  >
+                                    🔍 Lookup Address
+                                  </button>
+                                </FormDescription>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <div className="grid md:grid-cols-3 gap-4">
+                            <FormField
+                              control={form.control}
+                              name="filerCity"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>City *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Albany" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="filerState"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>State *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="NY" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="filerZip"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>ZIP Code *</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="12207" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="border-t pt-6 space-y-4">
+                          <h3 className="font-semibold text-primary">Additional Services</h3>
+
+                          <FormField
+                            control={form.control}
+                            name="addRegisteredAgentService"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={field.onChange}
+                                    className="h-4 w-4 mt-1"
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-semibold">
+                                    Add Registered Agent Service (+$149/year)
+                                  </FormLabel>
+                                  <FormDescription>
+                                    We&apos;ll accept legal documents and forward them to you promptly. Protects your privacy.
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="addBusinessAddress"
+                            render={({ field }) => (
+                              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                <FormControl>
+                                  <input
+                                    type="checkbox"
+                                    checked={field.value}
+                                    onChange={field.onChange}
+                                    className="h-4 w-4 mt-1"
+                                  />
+                                </FormControl>
+                                <div className="space-y-1 leading-none">
+                                  <FormLabel className="font-semibold">
+                                    Add Virtual Business Address (+$99/month)
+                                  </FormLabel>
+                                  <FormDescription>
+                                    Professional Albany address for your business cards and website
+                                  </FormDescription>
+                                </div>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Step 6: Review & Submit */}
+                    {currentStep === 6 && (
+                      <div className="space-y-6">
+                        <div className="bg-accent/10 border border-accent/20 rounded-lg p-6">
+                          <h3 className="font-display text-2xl font-bold text-primary mb-4">Order Summary</h3>
+
+                          <div className="space-y-4">
+                            <div className="grid md:grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <div className="font-semibold text-primary mb-1">LLC Name</div>
+                                <div className="text-gray-700">{watchedValues.llcName}</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-primary mb-1">County</div>
+                                <div className="text-gray-700">{watchedValues.county}</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-primary mb-1">Organizer</div>
+                                <div className="text-gray-700">{watchedValues.organizerName}</div>
+                              </div>
+                              <div>
+                                <div className="font-semibold text-primary mb-1">Filer</div>
+                                <div className="text-gray-700">{watchedValues.filerName}</div>
+                                <div className="text-gray-600 text-xs">{watchedValues.filerEmail}</div>
+                              </div>
+                            </div>
+
+                            <div className="border-t pt-4">
+                              <div className="font-semibold text-primary mb-2">Optional Provisions Included:</div>
+                              <div className="grid md:grid-cols-2 gap-2 text-sm">
+                                {watchedValues.includeOpeningStatement && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Opening Statement
+                                  </div>
+                                )}
+                                {watchedValues.includePurposeClause && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Purpose Clause
+                                  </div>
+                                )}
+                                {watchedValues.includeRegisteredAgent && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Registered Agent
+                                  </div>
+                                )}
+                                {watchedValues.includeManagementStructure && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Management Structure ({watchedValues.managementType})
+                                  </div>
+                                )}
+                                {watchedValues.includeEffectiveDate && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Custom Effective Date
+                                  </div>
+                                )}
+                                {watchedValues.includeDissolutionDate && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Dissolution Date
+                                  </div>
+                                )}
+                                {watchedValues.includeLiabilityStatement && (
+                                  <div className="flex items-center gap-2">
+                                    <svg className="w-4 h-4 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                    </svg>
+                                    Liability/Indemnification
+                                  </div>
+                                )}
+                                {!watchedValues.includeOpeningStatement &&
+                                 !watchedValues.includePurposeClause &&
+                                 !watchedValues.includeRegisteredAgent &&
+                                 !watchedValues.includeManagementStructure &&
+                                 !watchedValues.includeEffectiveDate &&
+                                 !watchedValues.includeDissolutionDate &&
+                                 !watchedValues.includeLiabilityStatement && (
+                                  <div className="text-gray-600 italic">None selected - Using defaults</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-primary/5 border-2 border-primary/20 rounded-lg p-6">
+                          <div className="space-y-3">
                             <div className="flex justify-between items-center">
-                              <span className="text-gray-700">LLC Formation</span>
+                              <span className="text-gray-700">LLC Formation Package</span>
                               <span className="font-semibold">$599</span>
                             </div>
-                            {addRegisteredAgent && (
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700">Registered Agent</span>
-                                <span className="font-semibold">$149</span>
+                            <div className="text-xs text-gray-600 pl-4">
+                              • Articles of Organization filing<br />
+                              • Albany county publication (required)<br />
+                              • EIN application assistance<br />
+                              • Operating agreement template<br />
+                              • Compliance calendar
+                            </div>
+                            {watchedValues.addRegisteredAgentService && (
+                              <div className="flex justify-between items-center border-t pt-3">
+                                <span className="text-gray-700">Registered Agent Service</span>
+                                <span className="font-semibold">$149/yr</span>
                               </div>
                             )}
-                            {addBusinessAddress && (
-                              <div className="flex justify-between items-center text-sm">
-                                <span className="text-gray-700">Business Address</span>
-                                <span className="font-semibold">$99</span>
+                            {watchedValues.addBusinessAddress && (
+                              <div className="flex justify-between items-center border-t pt-3">
+                                <span className="text-gray-700">Virtual Business Address</span>
+                                <span className="font-semibold">$99/mo</span>
                               </div>
                             )}
-                            <div className="border-t pt-2 flex justify-between items-center">
-                              <span className="font-display text-lg text-primary">Total</span>
-                              <span className="font-display text-2xl font-bold text-primary">
+                            <div className="border-t pt-3 flex justify-between items-center">
+                              <span className="font-display text-xl text-primary font-bold">Total</span>
+                              <span className="font-display text-3xl font-bold text-primary">
                                 ${calculateTotal()}
                               </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm">
+                          <div className="flex gap-2">
+                            <svg className="w-5 h-5 text-green-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <div className="text-gray-700">
+                              <strong>What happens next:</strong> After submission, we&apos;ll prepare your Articles of Organization
+                              based on the information provided. You&apos;ll receive a draft for review before we file with NYS.
+                              No signatures required from you - we handle the entire process!
                             </div>
                           </div>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex gap-4">
+                    {/* Navigation Buttons */}
+                    <div className="flex gap-4 pt-6 border-t">
                       {currentStep > 1 && (
                         <Button
                           type="button"
@@ -537,21 +1449,21 @@ export default function LLCFormationPage() {
                           onClick={() => setCurrentStep(currentStep - 1)}
                           className="flex-1"
                         >
-                          Previous
+                          ← Previous
                         </Button>
                       )}
-                      {currentStep < 3 ? (
+                      {currentStep < totalSteps ? (
                         <Button
                           type="button"
                           onClick={nextStep}
                           className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
                         >
-                          Next Step
+                          Next Step →
                         </Button>
                       ) : (
                         <Button
                           type="submit"
-                          className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold"
+                          className="flex-1 bg-accent hover:bg-accent/90 text-primary font-semibold text-lg py-6"
                           disabled={isSubmitting}
                         >
                           {isSubmitting ? "Submitting..." : "Submit Application"}
