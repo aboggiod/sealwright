@@ -77,7 +77,7 @@ const formSchema = z.object({
   forwardingName: z.string().min(2, "Name is required"),
   forwardingAddress: z.string().min(10, "Complete address required"),
   forwardingCity: z.string().min(2, "City is required"),
-  forwardingState: z.string().default("NY"),
+  forwardingState: z.string().min(2, "State is required"),
   forwardingZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
 
   includeRegisteredAgent: z.boolean(),
@@ -103,7 +103,7 @@ const formSchema = z.object({
   organizerName: z.string().min(2, "Organizer name is required"),
   organizerAddress: z.string().min(10, "Complete address required"),
   organizerCity: z.string().min(2, "City is required"),
-  organizerState: z.string().default("NY"),
+  organizerState: z.string().min(2, "State is required"),
   organizerZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
 
   filerName: z.string().min(2, "Filer name is required"),
@@ -113,7 +113,7 @@ const formSchema = z.object({
     .regex(/^\(\d{3}\) \d{3}-\d{4}$|^\d{10}$/, "Invalid phone number format"),
   filerAddress: z.string().min(10, "Complete address required"),
   filerCity: z.string().min(2, "City is required"),
-  filerState: z.string().default("NY"),
+  filerState: z.string().min(2, "State is required"),
   filerZip: z.string().regex(/^\d{5}(-\d{4})?$/, "Invalid ZIP code"),
 
   // Additional services
