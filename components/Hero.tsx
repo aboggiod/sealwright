@@ -18,7 +18,7 @@ export default function Hero() {
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/llc-formation">
-            <Button className="bg-accent text-primary hover:bg-accent/90 text-lg px-8 py-6">
+            <Button className="bg-accent text-white hover:bg-accent/90 text-lg px-8 py-6">
               Start LLC Formation
             </Button>
           </Link>

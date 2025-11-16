@@ -28,7 +28,7 @@ export default function Header() {
           </nav>
 
           <Link href="/llc-formation">
-            <Button className="bg-accent text-primary hover:bg-accent/90 font-semibold">
+            <Button className="bg-accent text-white hover:bg-accent/90 font-semibold">
               Get Started
             </Button>
           </Link>

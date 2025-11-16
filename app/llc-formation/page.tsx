@@ -285,7 +285,7 @@ export default function LLCFormationPage() {
                         key={step}
                         className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
                           step === currentStep
-                            ? "bg-accent text-primary"
+                            ? "bg-accent text-white"
                             : step < currentStep
                             ? "bg-primary text-white"
                             : "bg-gray-200 text-gray-500"

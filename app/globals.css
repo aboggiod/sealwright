@@ -30,8 +30,8 @@ body {
     --secondary-foreground: 210 100% 12%;
     --muted: 0 0% 96.1%;
     --muted-foreground: 0 0% 45.1%;
-    --accent: 43 100% 55%;
-    --accent-foreground: 0 0% 10%;
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 89.8%;
@@ -54,11 +54,11 @@ body {
 
 /* Critical button fixes */
 .bg-accent, [class*="bg-accent"] {
-  background-color: #FFB81C !important;
-  color: #001f3f !important;
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
 }
 
 button.bg-accent:hover {
-  background-color: #e5a319 !important;
-  color: #001f3f !important;
+  background-color: #2563eb !important;
+  color: #ffffff !important;
 }

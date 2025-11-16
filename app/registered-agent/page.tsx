@@ -168,12 +168,11 @@ export default function RegisteredAgentPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="text-center py-4">
-                  <div className="font-display text-5xl font-bold text-primary mb-2">$149</div>
+                  <div className="font-display text-5xl font-bold text-primary mb-2">$75</div>
                   <div className="text-gray-600">per year</div>
-                  <div className="text-sm text-gray-500 mt-2">or $15/month</div>
                 </div>
                 <div className="text-center text-xs text-gray-600">
-                  Save $31 with annual billing
+                  Simple, honest pricing. No hidden fees.
                 </div>
               </CardContent>
             </Card>
