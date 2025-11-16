@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import Header from "@/components/Header";
 
 const formSchema = z.object({
   firstName: z.string().min(2, "First name must be at least 2 characters"),
@@ -84,7 +85,9 @@ export default function ApostillePage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
+      <>
+        <Header />
+        <div className="min-h-screen bg-cream py-12 px-4">
         <div className="container mx-auto max-w-2xl">
           <Card className="border-2 border-accent">
             <CardHeader className="text-center">
@@ -114,11 +117,14 @@ export default function ApostillePage() {
           </Card>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <>
+      <Header />
+      <div className="min-h-screen bg-cream">
       {/* Header */}
       <div className="bg-primary text-white py-16 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -385,5 +391,6 @@ export default function ApostillePage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

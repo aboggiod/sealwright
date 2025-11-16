@@ -51,3 +51,14 @@ body {
     @apply bg-background text-foreground;
   }
 }
+
+/* Critical button fixes */
+.bg-accent, [class*="bg-accent"] {
+  background-color: #FFB81C !important;
+  color: #001f3f !important;
+}
+
+button.bg-accent:hover {
+  background-color: #e5a319 !important;
+  color: #001f3f !important;
+}

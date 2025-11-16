@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Link from "next/link";
+import Header from "@/components/Header";
 
 const formSchema = z.object({
   businessName: z.string().min(3, "Business name must be at least 3 characters"),
@@ -81,7 +82,9 @@ export default function RegisteredAgentPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
+      <>
+        <Header />
+        <div className="min-h-screen bg-cream py-12 px-4">
         <div className="container mx-auto max-w-2xl">
           <Card className="border-2 border-accent">
             <CardHeader className="text-center">
@@ -120,11 +123,14 @@ export default function RegisteredAgentPage() {
           </Card>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <>
+      <Header />
+      <div className="min-h-screen bg-cream">
       {/* Header */}
       <div className="bg-primary text-white py-16 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -416,5 +422,6 @@ export default function RegisteredAgentPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

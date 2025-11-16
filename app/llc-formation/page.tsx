@@ -25,8 +25,53 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import Header from "@/components/Header";
+
+const packages = [
+  {
+    name: "basic",
+    title: "Basic DIY Package",
+    price: 249,
+    description: "You upload, we file",
+    features: [
+      "You provide Articles of Organization",
+      "We file with NYS DOS",
+      "FREE EIN assistance",
+      "Email confirmation",
+      "24-hour turnaround"
+    ]
+  },
+  {
+    name: "premium",
+    title: "Premium Package",
+    price: 399,
+    description: "We do everything",
+    features: [
+      "We prepare Articles of Organization",
+      "Digital signature on site",
+      "FREE EIN filing",
+      "1 year Registered Agent included",
+      "Same-day processing"
+    ]
+  },
+  {
+    name: "full",
+    title: "Full Service Package",
+    price: 699,
+    description: "White glove service",
+    features: [
+      "Everything in Premium",
+      "2 years Registered Agent",
+      "Biennial statement filing",
+      "FREE D/B/A filing",
+      "2-hour rush processing"
+    ]
+  }
+];
 
 const formSchema = z.object({
+  // Package Selection
+  selectedPackage: z.enum(["basic", "premium", "full"]),
   // Step 1: Business Info
   businessName: z.string().min(3, "Business name must be at least 3 characters"),
   businessNameAlt1: z.string().optional(),
@@ -53,6 +98,7 @@ export default function LLCFormationPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      selectedPackage: "premium",
       businessName: "",
       businessNameAlt1: "",
       businessNameAlt2: "",
@@ -67,12 +113,14 @@ export default function LLCFormationPage() {
     },
   });
 
+  const selectedPackage = form.watch("selectedPackage");
   const addRegisteredAgent = form.watch("addRegisteredAgent");
   const addBusinessAddress = form.watch("addBusinessAddress");
 
   const calculateTotal = () => {
-    let total = 599; // Base LLC formation
-    if (addRegisteredAgent) total += 149;
+    const pkg = packages.find(p => p.name === selectedPackage);
+    let total = pkg?.price || 249;
+    if (addRegisteredAgent && selectedPackage === "basic") total += 149;
     if (addBusinessAddress) total += 99;
     return total;
   };
@@ -81,8 +129,10 @@ export default function LLCFormationPage() {
     let fieldsToValidate: Array<keyof z.infer<typeof formSchema>> = [];
 
     if (currentStep === 1) {
-      fieldsToValidate = ["businessName", "businessPurpose"];
+      fieldsToValidate = ["selectedPackage"];
     } else if (currentStep === 2) {
+      fieldsToValidate = ["businessName", "businessPurpose"];
+    } else if (currentStep === 3) {
       fieldsToValidate = ["memberName", "memberEmail", "memberPhone", "memberAddress"];
     }
 
@@ -115,7 +165,9 @@ export default function LLCFormationPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-cream py-12 px-4">
+      <>
+        <Header />
+        <div className="min-h-screen bg-cream py-12 px-4">
         <div className="container mx-auto max-w-2xl">
           <Card className="border-2 border-accent">
             <CardHeader className="text-center">
@@ -145,11 +197,14 @@ export default function LLCFormationPage() {
           </Card>
         </div>
       </div>
+      </>
     );
   }
 
   return (
-    <div className="min-h-screen bg-cream">
+    <>
+      <Header />
+      <div className="min-h-screen bg-cream">
       {/* Header */}
       <div className="bg-primary text-white py-16 px-4">
         <div className="container mx-auto max-w-4xl">
@@ -169,84 +224,43 @@ export default function LLCFormationPage() {
           <div className="md:col-span-1 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="font-display text-primary">NYC vs Albany Pricing</CardTitle>
+                <CardTitle className="font-display text-primary">Package Pricing</CardTitle>
               </CardHeader>
               <CardContent>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2">Service</th>
-                      <th className="text-right py-2">NYC</th>
-                      <th className="text-right py-2 text-accent">Albany</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-gray-700">
-                    <tr className="border-b">
-                      <td className="py-2">Filing</td>
-                      <td className="text-right">$500</td>
-                      <td className="text-right font-bold">$200</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Publication</td>
-                      <td className="text-right">$1500</td>
-                      <td className="text-right font-bold">$200</td>
-                    </tr>
-                    <tr className="border-b">
-                      <td className="py-2">Service Fee</td>
-                      <td className="text-right">$500</td>
-                      <td className="text-right font-bold">$199</td>
-                    </tr>
-                    <tr className="font-bold">
-                      <td className="py-2">Total</td>
-                      <td className="text-right text-lg">$2,500</td>
-                      <td className="text-right text-accent text-xl">$599</td>
-                    </tr>
-                  </tbody>
-                </table>
-                <div className="mt-4 text-center">
-                  <div className="text-2xl font-display font-bold text-primary">
-                    Save $1,901
-                  </div>
-                  <div className="text-sm text-gray-600">76% savings</div>
+                <div className="space-y-3">
+                  {packages.map((pkg) => (
+                    <div key={pkg.name} className="border-b pb-3 last:border-b-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <div className="font-semibold text-primary">{pkg.title}</div>
+                        <div className="text-accent font-bold text-lg">${pkg.price}</div>
+                      </div>
+                      <p className="text-xs text-gray-600">{pkg.description}</p>
+                    </div>
+                  ))}
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-display text-primary">What&apos;s Included</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {[
-                  "Articles of Organization filing",
-                  "Albany publication (required)",
-                  "EIN application assistance",
-                  "Operating agreement template",
-                  "Compliance calendar",
-                  "Initial consultation",
-                ].map((item, idx) => (
-                  <div key={idx} className="flex items-start gap-2">
-                    <svg className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-gray-700 text-sm">{item}</span>
+                <div className="mt-4 text-center p-3 bg-accent/10 rounded">
+                  <div className="text-sm font-semibold text-primary">
+                    All packages include FREE EIN
                   </div>
-                ))}
+                </div>
               </CardContent>
             </Card>
 
             <Card className="bg-accent/5 border-2 border-accent/20">
               <CardHeader>
-                <CardTitle className="font-display text-primary">Optional Add-ons</CardTitle>
+                <CardTitle className="font-display text-primary">Your Selection</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Registered Agent</span>
-                  <span className="font-bold text-primary">+$149/yr</span>
+                <div className="flex justify-between items-center pb-3 border-b">
+                  <span className="font-semibold text-primary">
+                    {packages.find(p => p.name === selectedPackage)?.title || "Select a package"}
+                  </span>
+                  <span className="font-bold text-accent text-xl">
+                    ${calculateTotal()}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-700">Business Address</span>
-                  <span className="font-bold text-primary">+$99/mo</span>
+                <div className="text-sm text-gray-600">
+                  {packages.find(p => p.name === selectedPackage)?.description}
                 </div>
               </CardContent>
             </Card>
@@ -259,9 +273,9 @@ export default function LLCFormationPage() {
                 <div className="flex justify-between items-center mb-4">
                   <div>
                     <CardTitle className="text-3xl font-display text-primary">
-                      {currentStep === 1 && "Business Information"}
-                      {currentStep === 2 && "Member Information"}
-                      {currentStep === 3 && "Additional Services"}
+                      {currentStep === 1 && "Select Your Package"}
+                      {currentStep === 2 && "Business Information"}
+                      {currentStep === 3 && "Member Information"}
                     </CardTitle>
                     <CardDescription>Step {currentStep} of 3</CardDescription>
                   </div>
@@ -286,8 +300,57 @@ export default function LLCFormationPage() {
               <CardContent>
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                    {/* Step 1: Business Info */}
+                    {/* Step 1: Package Selection */}
                     {currentStep === 1 && (
+                      <div className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="selectedPackage"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel className="text-lg font-semibold">Choose Your Package</FormLabel>
+                              <div className="grid gap-4 mt-4">
+                                {packages.map((pkg) => (
+                                  <div
+                                    key={pkg.name}
+                                    onClick={() => field.onChange(pkg.name)}
+                                    className={`cursor-pointer border-2 rounded-lg p-4 transition-all ${
+                                      field.value === pkg.name
+                                        ? "border-accent bg-accent/5"
+                                        : "border-gray-200 hover:border-accent/50"
+                                    }`}
+                                  >
+                                    <div className="flex justify-between items-start mb-2">
+                                      <div>
+                                        <h3 className="font-display text-xl font-bold text-primary">{pkg.title}</h3>
+                                        <p className="text-gray-600">{pkg.description}</p>
+                                      </div>
+                                      <div className="text-right">
+                                        <div className="text-2xl font-bold text-accent">${pkg.price}</div>
+                                      </div>
+                                    </div>
+                                    <ul className="space-y-1 mt-3">
+                                      {pkg.features.map((feature, idx) => (
+                                        <li key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                                          <svg className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                          </svg>
+                                          <span>{feature}</span>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  </div>
+                                ))}
+                              </div>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )}
+
+                    {/* Step 2: Business Info */}
+                    {currentStep === 2 && (
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
@@ -357,8 +420,8 @@ export default function LLCFormationPage() {
                       </div>
                     )}
 
-                    {/* Step 2: Member Info */}
-                    {currentStep === 2 && (
+                    {/* Step 3: Member Info */}
+                    {currentStep === 3 && (
                       <div className="space-y-4">
                         <FormField
                           control={form.control}
@@ -422,8 +485,8 @@ export default function LLCFormationPage() {
                       </div>
                     )}
 
-                    {/* Step 3: Services */}
-                    {currentStep === 3 && (
+                    {/* Step 4: Services - Hidden, moved to packages */}
+                    {currentStep === 4 && (
                       <div className="space-y-6">
                         <FormField
                           control={form.control}
@@ -566,5 +629,6 @@ export default function LLCFormationPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
