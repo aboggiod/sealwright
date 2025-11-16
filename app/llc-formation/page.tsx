@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
+import { generateAOO, type AOOFormData } from "@/lib/aoo-generator";
 
 // NY Counties for the dropdown
 const NY_COUNTIES = [
@@ -124,6 +125,7 @@ export default function LLCFormationPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [generatedAOO, setGeneratedAOO] = useState<string>("");
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -234,55 +236,196 @@ export default function LLCFormationPage() {
       timestamp,
     };
 
-    // Save to localStorage
+    // Save to localStorage for record keeping
     localStorage.setItem(`llc-formation-${timestamp}`, JSON.stringify(orderData));
 
-    // In production, this would call an API to generate the AOO PDF
+    // Generate the complete Articles of Organization document
+    const aooDocument = generateAOO(values as AOOFormData);
+    setGeneratedAOO(aooDocument);
+
     setTimeout(() => {
       setIsSubmitting(false);
       setShowSuccess(true);
-      form.reset();
-      setCurrentStep(1);
-    }, 1500);
+    }, 1000);
   }
+
+  const downloadAOOAsText = () => {
+    const blob = new Blob([generatedAOO], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `Articles_of_Organization_${form.getValues('llcName').replace(/[^a-zA-Z0-9]/g, '_')}.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const printAOO = () => {
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Articles of Organization - ${form.getValues('llcName')}</title>
+            <style>
+              body { font-family: 'Times New Roman', serif; max-width: 8.5in; margin: 1in auto; line-height: 1.5; }
+              pre { white-space: pre-wrap; font-family: 'Times New Roman', serif; font-size: 12pt; }
+            </style>
+          </head>
+          <body>
+            <pre>${generatedAOO}</pre>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 250);
+    }
+  };
+
+  const startNewApplication = () => {
+    setShowSuccess(false);
+    setGeneratedAOO("");
+    form.reset();
+    setCurrentStep(1);
+  };
 
   if (showSuccess) {
     return (
       <div className="min-h-screen bg-cream py-12 px-4">
-        <div className="container mx-auto max-w-2xl">
+        <div className="container mx-auto max-w-6xl">
           <Card className="border-2 border-accent">
-            <CardHeader className="text-center">
+            <CardHeader className="text-center border-b">
               <div className="mx-auto w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <CardTitle className="text-3xl font-display text-primary">Application Received!</CardTitle>
+              <CardTitle className="text-3xl font-display text-primary">Your Articles of Organization</CardTitle>
               <CardDescription className="text-lg">
-                Your LLC formation application has been submitted successfully.
+                Complete and ready for organizer signature
               </CardDescription>
             </CardHeader>
-            <CardContent className="text-center space-y-4">
-              <p className="text-gray-600">
-                We&apos;ll prepare your Articles of Organization and contact you within 24 hours with next steps.
-              </p>
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 text-left max-w-md mx-auto">
-                <h4 className="font-semibold text-primary mb-2">Next Steps:</h4>
-                <ul className="space-y-1 text-sm text-gray-700">
-                  <li>✓ We&apos;ll review your information</li>
-                  <li>✓ Generate your Articles of Organization</li>
-                  <li>✓ File with NY Department of State</li>
-                  <li>✓ Handle publication requirements</li>
-                  <li>✓ Send you all documentation</li>
-                </ul>
-              </div>
-              <div className="flex gap-4 justify-center pt-4">
-                <Button onClick={() => setShowSuccess(false)} variant="outline">
-                  Submit Another Application
-                </Button>
-                <Link href="/">
-                  <Button>Return Home</Button>
-                </Link>
+            <CardContent className="pt-6">
+              <div className="space-y-6">
+                {/* Alert Section */}
+                <div className="bg-green-50 border-2 border-green-500 rounded-lg p-6">
+                  <div className="flex gap-3">
+                    <svg className="w-6 h-6 text-green-600 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                    </svg>
+                    <div className="flex-1">
+                      <h3 className="font-display text-xl font-bold text-green-900 mb-2">
+                        Document Generated Successfully!
+                      </h3>
+                      <div className="text-green-800 space-y-2">
+                        <p className="font-semibold">This document is ready to file with NYS Department of State.</p>
+                        <p>
+                          Your customized Articles of Organization has been generated based on your selections.
+                          It includes only the optional provisions you selected.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Next Steps */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+                  <h3 className="font-display text-xl font-bold text-primary mb-4">📋 Next Steps</h3>
+                  <ol className="space-y-3 text-gray-700">
+                    <li className="flex gap-3">
+                      <span className="font-bold text-primary flex-shrink-0">1.</span>
+                      <span><strong>Review the document</strong> below carefully for accuracy</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="font-bold text-primary flex-shrink-0">2.</span>
+                      <span><strong>Download or print</strong> using the buttons below</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="font-bold text-primary flex-shrink-0">3.</span>
+                      <span><strong>Organizer must sign</strong> where indicated (physical signature required)</span>
+                    </li>
+                    <li className="flex gap-3">
+                      <span className="font-bold text-primary flex-shrink-0">4.</span>
+                      <span><strong>We will file</strong> the signed document with NYS Department of State and handle publication</span>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-4 justify-center py-4 border-y">
+                  <Button
+                    onClick={downloadAOOAsText}
+                    className="bg-accent hover:bg-accent/90 text-primary font-semibold"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Download as Text
+                  </Button>
+                  <Button
+                    onClick={printAOO}
+                    variant="outline"
+                    className="font-semibold"
+                  >
+                    <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print / Save as PDF
+                  </Button>
+                  <Button
+                    onClick={startNewApplication}
+                    variant="outline"
+                  >
+                    Start New Application
+                  </Button>
+                  <Link href="/">
+                    <Button variant="outline">Return Home</Button>
+                  </Link>
+                </div>
+
+                {/* Document Preview */}
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3 className="font-display text-xl font-bold text-primary">Document Preview</h3>
+                    <div className="text-sm text-gray-600">
+                      {generatedAOO.split('\n').filter(line => line.trim()).length} lines
+                    </div>
+                  </div>
+                  <div className="bg-white border-2 border-gray-300 rounded-lg p-8 shadow-inner max-h-[600px] overflow-y-auto">
+                    <pre className="whitespace-pre-wrap font-serif text-sm leading-relaxed text-gray-900">
+                      {generatedAOO}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Information Box */}
+                <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
+                  <h4 className="font-semibold text-primary mb-3">ℹ️ Important Information</h4>
+                  <ul className="space-y-2 text-sm text-gray-700">
+                    <li className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>This document contains only the sections you selected during the application process</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>The organizer signature is required before filing with NYS DOS</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>Keep a copy for your records after signing</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span>Send the signed document to us and we&apos;ll handle the rest (filing + publication)</span>
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-primary">•</span>
+                      <span><strong>Note:</strong> To save as PDF, use your browser&apos;s &quot;Print to PDF&quot; option</span>
+                    </li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -415,7 +558,7 @@ export default function LLCFormationPage() {
                     {currentStep === 1 && (
                       <div className="space-y-6">
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
-                          <strong>Important:</strong> Your LLC name must include "LLC", "L.L.C.", or "Limited Liability Company".
+                          <strong>Important:</strong> Your LLC name must include &quot;LLC&quot;, &quot;L.L.C.&quot;, or &quot;Limited Liability Company&quot;.
                           We recommend checking name availability on the{" "}
                           <a
                             href="https://apps.dos.ny.gov/publicInquiry/"
