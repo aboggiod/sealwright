@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,6 +37,33 @@ export default function LLCFormation() {
     email: '',
     phone: ''
   });
+
+  // Fix signature canvas coordinate system
+  useEffect(() => {
+    const fixCanvasSize = () => {
+      const canvas = signatureRef.current?.getCanvas();
+      if (canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = rect.width * dpr;
+        canvas.height = rect.height * dpr;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+        }
+      }
+    };
+
+    // Fix on mount and when step changes to signature page
+    if (currentStep === 2 && signatureRef.current) {
+      // Small delay to ensure canvas is fully mounted
+      setTimeout(fixCanvasSize, 100);
+    }
+
+    // Also fix on window resize
+    window.addEventListener('resize', fixCanvasSize);
+    return () => window.removeEventListener('resize', fixCanvasSize);
+  }, [currentStep, selectedPackage]);
 
   const calculatePrice = () => {
     let price = 0;
