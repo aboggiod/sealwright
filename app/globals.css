@@ -62,3 +62,15 @@ button.bg-accent:hover {
   background-color: #2563eb !important;
   color: #ffffff !important;
 }
+
+/* Fix ugly $ character in display font */
+.font-display {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Use cleaner numerics for pricing */
+.price-display {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}

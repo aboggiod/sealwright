@@ -95,14 +95,12 @@ export default function AddOnsPage() {
               <Card key={service.title} className="border-2 hover:border-accent transition-colors">
                 <CardHeader>
                   <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-2xl">{service.title}</CardTitle>
-                    <div className="font-display text-2xl font-bold text-accent">
+                    <h3 className="text-xl font-bold text-primary">{service.title}</h3>
+                    <div className="price-display text-2xl text-accent">
                       {service.price}
                     </div>
                   </div>
-                  <CardDescription className="text-base">
-                    {service.description}
-                  </CardDescription>
+                  <p className="text-gray-600 text-sm">{service.description}</p>
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-2">
@@ -129,11 +127,11 @@ export default function AddOnsPage() {
                 <p className="text-gray-700 mb-4">
                   If you don&apos;t see what you need, reach out. We handle all kinds of NYS filings and document services.
                 </p>
-                <Link href="/llc-formation">
+                <a href="mailto:contact@sealwright.com?subject=Additional Services Inquiry">
                   <Button className="bg-accent text-white hover:bg-accent/90">
-                    Contact Us
+                    Email Us
                   </Button>
-                </Link>
+                </a>
               </CardContent>
             </Card>
           </div>

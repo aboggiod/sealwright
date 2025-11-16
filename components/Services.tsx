@@ -56,7 +56,7 @@ export default function Services() {
               <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
                 <CardHeader>
                   <CardTitle className="text-2xl">{service.title}</CardTitle>
-                  <CardDescription className="text-xl font-bold text-accent">
+                  <CardDescription className="price-display text-xl text-accent">
                     {service.price}
                   </CardDescription>
                 </CardHeader>
