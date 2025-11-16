@@ -11,7 +11,7 @@ export default function Hero() {
           Paper Sherpas
         </h1>
         <p className="text-xl md:text-2xl text-gray-700 mb-4">
-          We know the mountain path. The mountain's meaning? No fucking clue.
+          We know the mountain path. The mountain&apos;s meaning? No fucking clue.
         </p>
         <p className="text-lg text-gray-600 mb-8">
           Professional document filing by SEALWRIGHT, LLC
